@@ -43,99 +43,211 @@ A comprehensive enterprise work intake management system designed for healthcare
                        └─────────────────┘
 ```
 
-## 🛠️ Technology Stack
+## 🛠️ Enterprise Technology Stack
 
-### Backend
-- **.NET 8**: Latest LTS version with performance improvements
-- **Entity Framework Core**: Modern ORM with code-first approach
-- **SQL Server**: Enterprise-grade database
-- **Redis**: High-performance caching and session storage
-- **Serilog**: Structured logging with multiple sinks
-- **AutoMapper**: Object mapping and transformation
+### Core Technology Components
+
+#### Frontend
+- **React.js with TypeScript**: Modern UI development with type safety
+- **Material-UI/Ant Design**: Professional enterprise component libraries
+- **State Management**: Redux Toolkit with React Query for server state
+- **Routing**: React Router for client-side navigation
+- **Charts & Analytics**: Recharts for data visualization
+
+#### Backend
+- **.NET Core Web API**: Enterprise-grade API framework (IIS compatible)
+- **Entity Framework Core**: Code-first ORM with SQL Server integration
+- **AutoMapper**: Object-to-object mapping
 - **FluentValidation**: Input validation and business rules
+- **MediatR**: CQRS and mediator pattern implementation
 
-### Frontend
-- **React 18**: Modern UI library with hooks and concurrent features
-- **TypeScript**: Type-safe JavaScript development
-- **Material-UI**: Professional component library
-- **React Query**: Server state management and caching
-- **React Router**: Client-side routing
-- **Recharts**: Data visualization and analytics charts
+#### Database & Storage
+- **SQL Server 2019/2022**: Enterprise database with advanced features
+- **Entity Framework Core**: Database access and migrations
+- **SQL Server Service Broker**: Reliable messaging and queuing
 
-### DevOps & Infrastructure
-- **Docker**: Containerization for consistent deployments
-- **Docker Compose**: Multi-service orchestration
-- **Azure AD**: Enterprise authentication and authorization
-- **Health Checks**: Application monitoring and alerting
-- **Rate Limiting**: API protection and throttling
+#### Authentication & Security
+- **Windows Authentication**: Integrated Windows security
+- **LDAP Integration**: Active Directory integration for user management
+- **ADFS Support**: Hybrid authentication for federated scenarios
+- **Role-Based Access Control**: Granular permission management
 
-## 📋 Prerequisites
+#### Hosting & Infrastructure
+- **IIS 10+**: Web server on Windows Server 2019/2022
+- **Application Request Routing (ARR)**: Load balancing and reverse proxy
+- **Windows Server 2019/2022**: Enterprise hosting platform
+- **On-premises Deployment**: Full enterprise control and compliance
 
+#### API Gateway & Management
+- **On-premises API Management**: Centralized API governance
+- **IIS ARR with Custom Modules**: Request routing and transformation
+- **Rate Limiting & Throttling**: API protection and SLA enforcement
+- **API Versioning**: Backward compatibility and evolution management
+- **API Documentation**: Auto-generated Swagger/OpenAPI specifications
+
+#### Caching Strategy (Multi-tier)
+- **IIS Output Caching**: Static content and page-level caching with custom policies
+- **Redis Distributed Cache**: Cross web farm session and data caching
+- **Database Query Result Caching**: Entity Framework query optimization
+- **Configuration Data Caching**: Dynamic settings with invalidation policies
+
+#### Monitoring & Observability
+- **ELK Stack**: Elasticsearch, Logstash, Kibana for log aggregation and analysis
+- **Seq**: Structured logging alternative with rich querying
+- **Application Performance Monitoring (APM)**: Performance tracking and alerting
+- **Custom Logging**: Serilog with enterprise sinks and enrichers
+- **Health Checks**: Comprehensive system health monitoring
+
+#### CI/CD & DevOps
+- **Jenkins**: Enterprise CI/CD automation platform
+- **GitLab**: Source control and repository management
+- **Automated Deployment**: Pipeline-driven deployments to Windows environments
+- **Configuration Management**: Environment-specific settings and secrets
+
+### Enhanced Architecture Components
+
+#### API Gateway Layer
+- **Centralized Authentication/Authorization**: Single security policy enforcement point
+- **Rate Limiting and Throttling**: Backend service protection from overload
+- **API Versioning**: Multiple API version support for backward compatibility
+- **External System Integration Management**: Standardized integration patterns
+- **Request/Response Transformation**: Data format adaptation for external systems
+
+#### Event Sourcing Architecture
+- **Event Store**: Immutable log of all system events with correlation tracking
+- **Event Projections**: Read models for current state reconstruction
+- **Workflow State Management**: Complete audit trail of workflow transitions
+- **Replay Capabilities**: Event replay for debugging and state reconstruction
+- **Snapshot Management**: Periodic snapshots for performance optimization
+
+#### Enterprise Service Bus Pattern
+- **Message Routing**: Intelligent message routing to appropriate services
+- **Protocol Translation**: Multi-protocol communication support
+- **Service Registry**: Dynamic service discovery and registration
+- **Circuit Breaker**: Fault tolerance for external service calls
+- **Message Transformation**: Data format conversion between systems
+
+#### Reliability & Scalability
+- **SQL Server Service Broker**: Reliable async messaging and queuing
+- **Connection Pooling**: Optimized database connection management
+- **Web Farm Support**: Horizontal scaling across multiple IIS servers
+- **Session State Management**: Distributed session handling with Redis
+- **Failover Support**: High availability and disaster recovery
+
+## 📋 Enterprise Prerequisites
+
+### Development Environment
 - **.NET 8 SDK**: [Download here](https://dotnet.microsoft.com/download/dotnet/8.0)
 - **Node.js 18+**: [Download here](https://nodejs.org/)
-- **SQL Server**: Local or cloud instance
-- **Redis**: Local or cloud instance
-- **Docker & Docker Compose**: For containerized deployment
+- **Visual Studio 2022**: Enterprise or Professional edition recommended
+- **SQL Server Management Studio (SSMS)**: Database management and development
 
-## 🚀 Quick Start
+### Enterprise Infrastructure
+- **Windows Server 2019/2022**: Host server with appropriate licensing
+- **IIS 10+**: Internet Information Services with ARR module
+- **SQL Server 2019/2022**: Enterprise or Standard edition with Service Broker enabled
+- **Active Directory**: Windows domain environment for authentication
+- **Redis Server**: For distributed caching (Windows or Linux)
 
-### Option 1: Docker Compose (Recommended)
+### Optional Enterprise Components
+- **Jenkins**: CI/CD automation platform
+- **GitLab**: Source control and repository management
+- **ELK Stack**: Elasticsearch, Logstash, Kibana for logging (or Seq alternative)
+- **Load Balancer**: Hardware or software load balancing solution
+- **SSL Certificates**: For HTTPS and secure communications
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd WorkIntakeSystem
+## 🚀 Enterprise Deployment Guide
+
+### Production IIS Deployment
+
+1. **Prepare Windows Server Environment**
+   ```powershell
+   # Install IIS with ASP.NET Core Hosting Bundle
+   Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole, IIS-WebServer, IIS-ApplicationDevelopment
+   # Install ASP.NET Core Hosting Bundle
+   # Download from: https://dotnet.microsoft.com/download/dotnet/8.0
    ```
 
-2. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Start the system**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application**
-   - Frontend: http://localhost:3000
-   - API: http://localhost:5000
-   - Swagger: http://localhost:5000/swagger
-
-### Option 2: Local Development
-
-1. **Setup Database**
-   ```bash
-   # Update connection string in appsettings.Development.json
-   # Run migrations
+2. **Configure SQL Server**
+   ```sql
+   -- Enable Service Broker for message queuing
+   ALTER DATABASE [WorkIntakeSystem] SET ENABLE_BROKER;
+   
+   -- Run Entity Framework migrations
    dotnet ef database update --project src/WorkIntakeSystem.Infrastructure
    ```
 
-2. **Start Backend**
-   ```bash
-   cd src/WorkIntakeSystem.API
-   dotnet run
+3. **Deploy Application**
+   ```powershell
+   # Publish the API
+   dotnet publish src/WorkIntakeSystem.API -c Release -o "C:\inetpub\wwwroot\WorkIntakeAPI"
+   
+   # Build and deploy frontend
+   cd src/WorkIntakeSystem.Web
+   npm install
+   npm run build
+   # Copy dist folder to IIS web root
    ```
 
-3. **Start Frontend**
+4. **Configure IIS**
+   ```powershell
+   # Create Application Pool
+   New-WebAppPool -Name "WorkIntakeSystem" -Force
+   Set-ItemProperty -Path "IIS:\AppPools\WorkIntakeSystem" -Name processModel.identityType -Value ApplicationPoolIdentity
+   
+   # Create Website
+   New-Website -Name "WorkIntakeSystem" -Port 80 -PhysicalPath "C:\inetpub\wwwroot\WorkIntakeAPI" -ApplicationPool "WorkIntakeSystem"
+   ```
+
+### Development Environment Setup
+
+1. **Local Development Database**
    ```bash
+   # Update connection string in appsettings.Development.json
+   # Enable Service Broker on local SQL Server
+   dotnet ef database update --project src/WorkIntakeSystem.Infrastructure
+   ```
+
+2. **Start Development Services**
+   ```bash
+   # Start API (Backend)
+   cd src/WorkIntakeSystem.API
+   dotnet run --environment Development
+   
+   # Start React Frontend
    cd src/WorkIntakeSystem.Web
    npm install
    npm run dev
    ```
 
+3. **Access Development Environment**
+   - Frontend: http://localhost:3000
+   - API: https://localhost:7000
+   - Swagger: https://localhost:7000/swagger
+
 ## 🔧 Configuration
 
-### Environment Variables
+### Enterprise Configuration Settings
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ConnectionStrings__DefaultConnection` | SQL Server connection string | - |
-| `ConnectionStrings__Redis` | Redis connection string | `localhost:6379` |
-| `AzureAd__TenantId` | Azure AD tenant ID | - |
-| `AzureAd__ClientId` | Azure AD client ID | - |
-| `AzureAd__Audience` | Azure AD audience | - |
+| `ConnectionStrings__DefaultConnection` | SQL Server connection string with Service Broker enabled | - |
+| `ConnectionStrings__Redis` | Redis connection string for distributed caching | `localhost:6379` |
+| `WindowsAuthentication__Enabled` | Enable Windows Authentication | `true` |
+| `WindowsAuthentication__LdapServer` | LDAP server for user lookup | - |
+| `WindowsAuthentication__Domain` | Windows domain name | - |
+| `ADFS__Authority` | ADFS authority URL for hybrid authentication | - |
+| `ADFS__ClientId` | ADFS client identifier | - |
+| `ApiGateway__RateLimitPerMinute` | API rate limiting threshold | `1000` |
+| `ApiGateway__EnableThrottling` | Enable request throttling | `true` |
+| `Caching__IISOutputCacheEnabled` | Enable IIS output caching | `true` |
+| `Caching__RedisDistributedEnabled` | Enable Redis distributed caching | `true` |
+| `Caching__DatabaseQueryCacheMinutes` | Database query cache duration | `15` |
+| `ServiceBroker__QueueName` | SQL Server Service Broker queue name | `WorkIntakeQueue` |
+| `ServiceBroker__ServiceName` | Service Broker service name | `WorkIntakeService` |
+| `Monitoring__ElkStackUrl` | ELK Stack endpoint for log shipping | - |
+| `Monitoring__SeqUrl` | Seq server URL for structured logging | - |
+| `Monitoring__APMEnabled` | Enable Application Performance Monitoring | `true` |
 
 ### Priority Calculation Settings
 
@@ -439,6 +551,7 @@ For support and questions:
   - 📋 Advanced workflow automation
   - 📋 Integration with IoT and edge devices
   - 📋 Blockchain for immutable audit trails
+
 
 ## 🔄 Version History
 
