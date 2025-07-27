@@ -1,4 +1,4 @@
-# Work Intake System
+# Business Prioritization Tracking System
 
 A comprehensive enterprise web application designed to manage work intake, prioritization, and tracking across multiple healthcare business verticals with integrated Microsoft 365 authentication and role-based access control.
 
