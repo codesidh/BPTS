@@ -18,17 +18,23 @@ public class WorkRequestsController : ControllerBase
     private readonly IPriorityCalculationService _priorityCalculationService;
     private readonly IMapper _mapper;
     private readonly ILogger<WorkRequestsController> _logger;
+    private readonly IConfigurationService _configurationService;
+    private readonly IWorkflowEngine _workflowEngine;
 
     public WorkRequestsController(
         IWorkRequestRepository workRequestRepository,
         IPriorityCalculationService priorityCalculationService,
         IMapper mapper,
-        ILogger<WorkRequestsController> logger)
+        ILogger<WorkRequestsController> logger,
+        IConfigurationService configurationService,
+        IWorkflowEngine workflowEngine)
     {
         _workRequestRepository = workRequestRepository;
         _priorityCalculationService = priorityCalculationService;
         _mapper = mapper;
         _logger = logger;
+        _configurationService = configurationService;
+        _workflowEngine = workflowEngine;
     }
 
     /// <summary>
@@ -292,6 +298,27 @@ public class WorkRequestsController : ControllerBase
         {
             _logger.LogError(ex, "Error recalculating all priorities");
             return StatusCode(500, "An error occurred while recalculating priorities");
+        }
+    }
+
+    /// <summary>
+    /// Advance workflow stage for a work request
+    /// </summary>
+    [HttpPost("{id}/advance-workflow")]
+    public async Task<IActionResult> AdvanceWorkflow(int id, [FromBody] AdvanceWorkflowDto dto)
+    {
+        var workRequest = await _workRequestRepository.GetByIdAsync(id);
+        if (workRequest == null) return NotFound();
+        var userId = /* get from context or claims */ 1; // TODO: Replace with real user id
+        try
+        {
+            await _workflowEngine.AdvanceAsync(workRequest, dto.NextStage, userId, dto.Comments);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Workflow transition failed");
+            return BadRequest(ex.Message);
         }
     }
 

@@ -8,6 +8,10 @@ using WorkIntakeSystem.Infrastructure.Repositories;
 using FluentValidation;
 using AutoMapper;
 using System.Reflection;
+using WorkIntakeSystem.Infrastructure.Services;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.Resource;
+using Microsoft.Graph;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,8 +44,13 @@ builder.Services.AddDbContext<WorkIntakeDbContext>(options =>
         b => b.MigrationsAssembly("WorkIntakeSystem.Infrastructure")));
 
 // Authentication - Windows Authentication
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-    .AddNegotiate();
+// Azure AD Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+// Microsoft Graph
+builder.Services.AddMicrosoftGraph(builder.Configuration.GetSection("MicrosoftGraph"))
+    .WithUserAuthentication();
 
 builder.Services.AddAuthorization();
 
@@ -76,9 +85,34 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 builder.Services.AddScoped<IWorkRequestRepository, WorkRequestRepository>();
 builder.Services.AddScoped<IPriorityRepository, PriorityRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
+builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
 
 // Register services
-builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationService>();
+builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationService>(sp =>
+    new PriorityCalculationService(
+        sp.GetRequiredService<IWorkRequestRepository>(),
+        sp.GetRequiredService<IPriorityRepository>(),
+        sp.GetRequiredService<IDepartmentRepository>(),
+        sp.GetRequiredService<IConfigurationService>()
+    )
+);
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>(sp =>
+    new ConfigurationService(
+        sp.GetRequiredService<ISystemConfigurationRepository>(),
+        sp.GetRequiredService<IConfiguration>()
+    )
+);
+
+// Register analytics and integration services
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IExternalIntegrationService, ExternalIntegrationService>();
+builder.Services.AddScoped<IProjectManagementIntegration, ProjectManagementIntegration>();
+builder.Services.AddScoped<ICalendarIntegration, CalendarIntegration>();
+builder.Services.AddScoped<INotificationIntegration, NotificationIntegration>();
+
+// Register HttpClient for external integrations
+builder.Services.AddHttpClient();
 
 // Health checks
 builder.Services.AddHealthChecks()

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WorkIntakeSystem.Core.Entities;
-using WorkIntakeSystem.Core.Services;
+using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Infrastructure.Data;
 
 namespace WorkIntakeSystem.Infrastructure.Repositories;
@@ -67,5 +67,31 @@ public class PriorityRepository : IPriorityRepository
             .Where(p => p.DepartmentId == departmentId)
             .OrderByDescending(p => p.VotedDate)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Priority>> GetByDepartmentIdAsync(int departmentId)
+    {
+        return await _context.Priorities
+            .Include(p => p.WorkRequest)
+            .Include(p => p.VotedBy)
+            .Where(p => p.DepartmentId == departmentId)
+            .OrderByDescending(p => p.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<PendingVoteInfo>> GetPendingVotesForDepartmentAsync(int departmentId)
+    {
+        // Get all work requests that don't have a vote from this department
+        var votedWorkRequestIds = await _context.Priorities
+            .Where(p => p.DepartmentId == departmentId)
+            .Select(p => p.WorkRequestId)
+            .ToListAsync();
+
+        var pendingWorkRequests = await _context.WorkRequests
+            .Where(wr => !votedWorkRequestIds.Contains(wr.Id) && wr.Status != WorkIntakeSystem.Core.Enums.WorkStatus.Closed)
+            .Select(wr => new PendingVoteInfo { WorkRequestId = wr.Id })
+            .ToListAsync();
+
+        return pendingWorkRequests;
     }
 }

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { MsalProvider } from '@azure/msal-react';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -63,15 +65,26 @@ const theme = createTheme({
   },
 });
 
+const msalConfig = {
+  auth: {
+    clientId: import.meta.env.VITE_AZURE_AD_CLIENT_ID || 'your-client-id',
+    authority: import.meta.env.VITE_AZURE_AD_AUTHORITY || 'https://login.microsoftonline.com/your-tenant-id',
+    redirectUri: import.meta.env.VITE_AZURE_AD_REDIRECT_URI || window.location.origin,
+  },
+};
+const msalInstance = new PublicClientApplication(msalConfig);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <MsalProvider instance={msalInstance}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MsalProvider>
   </React.StrictMode>,
 );

@@ -27,6 +27,7 @@ import {
   Business as BusinessIcon,
   People as PeopleIcon,
   Assessment as ReportsIcon,
+  IntegrationInstructions as IntegrationIcon,
   AccountCircle,
   Logout,
   Settings,
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
   { text: 'Business Verticals', icon: <BusinessIcon />, path: '/business-verticals' },
   { text: 'Users', icon: <PeopleIcon />, path: '/users', divider: true },
   { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+  { text: 'Integrations', icon: <IntegrationIcon />, path: '/external-integrations' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
