@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WorkIntakeSystem.Core.Enums;
+using WorkIntakeSystem.Core.Entities;
 
 namespace WorkIntakeSystem.Core.Interfaces
 {
@@ -81,13 +82,7 @@ namespace WorkIntakeSystem.Core.Interfaces
         public List<string> Blockers { get; set; } = new();
     }
 
-    public class WorkflowBottleneck
-    {
-        public WorkflowStage Stage { get; set; }
-        public decimal AverageTimeInStage { get; set; }
-        public int RequestCount { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
+    // WorkflowBottleneck moved to IAdvancedAnalyticsService.cs
 
     public class PriorityTrend
     {
@@ -142,11 +137,5 @@ namespace WorkIntakeSystem.Core.Interfaces
         public decimal UtilizationRate { get; set; }
     }
 
-    public class TrendData
-    {
-        public DateTime Date { get; set; }
-        public string Group { get; set; } = string.Empty;
-        public decimal Value { get; set; }
-        public int Count { get; set; }
-    }
+    // TrendData moved to Phase4Models.cs
 } 
