@@ -329,6 +329,117 @@ For support and questions:
 - Contact the development team
 - Check the documentation
 
+## 🗺️ Roadmap
+
+### Phase 1: Foundation (Completed)
+- ✅ Core domain models and database schema
+- ✅ Basic CRUD operations for work requests, departments, and users
+- ✅ Authentication and authorization (Azure AD integration)
+- ✅ Executive dashboard with basic analytics
+- ✅ Docker containerization and deployment setup
+
+### Phase 2: Core Features (In Progress)
+- ✅ **Enhanced Priority Voting System**
+  - ✅ Department-weighted voting with business value scoring
+  - ✅ Strategic alignment and resource impact assessment
+  - ✅ Real-time priority calculation with time decay and capacity adjustment
+  - ✅ Priority voting API endpoints and frontend integration
+  - ✅ Priority recalculation service with configurable algorithms
+
+- ✅ **Advanced Workflow Engine**
+  - ✅ Configurable workflow stages (15 stages from Intake to Closure)
+  - ✅ Permission-based stage transitions with role validation
+  - ✅ Audit trail logging for all workflow changes
+  - ✅ Event sourcing implementation for workflow state changes
+  - ✅ Workflow advancement API with validation
+
+- ✅ **Configuration Management System**
+  - ✅ Dynamic system configuration with versioning
+  - ✅ Effective/expiration dates and change tracking
+  - ✅ Business vertical-specific configuration support
+  - ✅ Configuration API with CRUD operations
+  - ✅ Configuration service with fallback to appsettings
+
+- ✅ **Event Sourcing & Audit Trail**
+  - ✅ Event store implementation for all major actions
+  - ✅ Comprehensive audit trail with security context
+  - ✅ Event replay capabilities for aggregate reconstruction
+  - ✅ Correlation IDs and causation tracking
+  - ✅ Event store API for viewing and replaying events
+
+### Phase 3: Advanced Features (In Progress)
+- ✅ **Analytics & Reporting**
+  - ✅ Real-time dashboard analytics
+  - ✅ Department-specific analytics and workload tracking
+  - ✅ Workflow analytics with bottleneck identification
+  - ✅ Priority analytics and voting patterns
+  - ✅ Team utilization and performance metrics
+
+- ✅ **External Integrations**
+  - ✅ Project management system integration framework
+  - ✅ Calendar integration (Microsoft Graph)
+  - ✅ Notification system integration
+  - ✅ External system status monitoring
+  - ✅ Integration logging and error handling
+
+- ✅ **Frontend Enhancements**
+  - ✅ Priority voting UI with real-time updates
+  - ✅ Workflow management interface
+  - ✅ Analytics dashboard with charts and metrics
+  - ✅ Configuration management UI with versioning and approval workflows
+  - ✅ Event/audit trail viewer with timeline and replay capabilities
+
+### Phase 4: Enterprise Features (Planned)
+- 📋 **Advanced Integrations**
+  - 📋 Microsoft 365 deep integration (Teams, SharePoint, Power BI)
+  - 📋 Azure DevOps/Jira project management sync
+  - 📋 Advanced notification system with templates
+  - 📋 Calendar scheduling and resource allocation
+
+- 📋 **Enhanced Analytics & BI**
+  - 📋 Advanced business intelligence dashboards
+  - 📋 Predictive analytics for priority and workload
+  - 📋 Custom report builder
+  - 📋 Data export and integration capabilities
+
+- 📋 **Mobile & Accessibility**
+  - 📋 Mobile-responsive design optimization
+  - 📋 Progressive Web App (PWA) features
+  - 📋 Accessibility compliance (WCAG 2.1)
+  - 📋 Offline capability for critical functions
+
+### Phase 5: Enterprise Scale (Future)
+- 📋 **Machine Learning & AI**
+  - 📋 Priority prediction using historical data
+  - 📋 Workload optimization recommendations
+  - 📋 Automated workflow suggestions
+  - 📋 Anomaly detection and alerting
+
+- 📋 **Microservices Architecture**
+  - 📋 Service decomposition and API gateway
+  - 📋 Event-driven communication between services
+  - 📋 Independent deployment and scaling
+  - 📋 Service mesh implementation
+
+- 📋 **Advanced Security & Compliance**
+  - 📋 Advanced role-based access control (RBAC)
+  - 📋 Data encryption at rest and in transit
+  - 📋 Compliance reporting (HIPAA, SOX)
+  - 📋 Advanced audit and compliance monitoring
+
+### Phase 6: Innovation & Optimization (Future)
+- 📋 **Performance & Scalability**
+  - 📋 Horizontal scaling with load balancing
+  - 📋 Advanced caching strategies
+  - 📋 Database optimization and read replicas
+  - 📋 CDN integration for global performance
+
+- 📋 **Advanced Features**
+  - 📋 Real-time collaboration features
+  - 📋 Advanced workflow automation
+  - 📋 Integration with IoT and edge devices
+  - 📋 Blockchain for immutable audit trails
+
 ## 🔄 Version History
 
 - **v1.0.0** - Initial release with core functionality

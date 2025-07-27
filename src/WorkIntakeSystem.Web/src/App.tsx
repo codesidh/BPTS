@@ -12,6 +12,8 @@ import BusinessVerticals from './pages/BusinessVerticals';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import ExternalIntegrations from './pages/ExternalIntegrations';
+import ConfigurationManagement from './pages/ConfigurationManagement';
+import EventAuditTrail from './pages/EventAuditTrail';
 import AuthProvider from './components/AuthProvider';
 
 function App() {
@@ -31,6 +33,8 @@ function App() {
             <Route path="/users" element={<Users />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/external-integrations" element={<ExternalIntegrations />} />
+            <Route path="/configuration" element={<ConfigurationManagement />} />
+            <Route path="/audit-trail" element={<EventAuditTrail />} />
           </Routes>
         </AuthProvider>
       </Layout>
