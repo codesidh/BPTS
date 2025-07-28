@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 
 namespace WorkIntakeSystem.Core.Interfaces;
 
@@ -6,7 +6,7 @@ public interface IApiGatewayService
 {
     Task<bool> ValidateRateLimit(string clientId, string endpoint);
     Task<bool> ValidateApiVersion(string version, string endpoint);
-    Task<object?> TransformRequest(HttpRequest request, string targetFormat);
+    Task<object?> TransformRequest(object request, string targetFormat);
     Task<object?> TransformResponse(object response, string targetFormat);
     Task LogApiCall(string clientId, string endpoint, string method, int statusCode, long responseTime);
     Task<bool> IsEndpointAllowed(string endpoint, string clientId);
@@ -22,7 +22,7 @@ public interface IRateLimitingService
 
 public interface IApiVersioningService
 {
-    string GetRequestedVersion(HttpRequest request);
+    string GetRequestedVersion(IDictionary<string, object> requestHeaders);
     bool IsVersionSupported(string version, string endpoint);
     string GetDefaultVersion();
     Task<IEnumerable<string>> GetSupportedVersions(string endpoint);
@@ -30,9 +30,9 @@ public interface IApiVersioningService
 
 public interface IRequestTransformationService
 {
-    Task<T?> TransformRequest<T>(HttpRequest request, string sourceFormat, string targetFormat);
+    Task<T?> TransformRequest<T>(object request, string sourceFormat, string targetFormat);
     Task<object?> TransformResponse(object response, string sourceFormat, string targetFormat);
-    Task<bool> ValidateRequestFormat(HttpRequest request, string expectedFormat);
+    Task<bool> ValidateRequestFormat(object request, string expectedFormat);
 }
 
 public class RateLimitInfo

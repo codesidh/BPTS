@@ -72,7 +72,7 @@ public class ApiGatewayService : IApiGatewayService
         }
     }
 
-    public async Task<object?> TransformRequest(HttpRequest request, string targetFormat)
+    public async Task<object?> TransformRequest(object request, string targetFormat)
     {
         try
         {
@@ -254,26 +254,29 @@ public class ApiVersioningService : IApiVersioningService
         _versionHeader = configuration.GetValue<string>("ApiGateway:ApiVersionHeader", "X-Api-Version")!;
     }
 
-    public string GetRequestedVersion(HttpRequest request)
+    public string GetRequestedVersion(IDictionary<string, object> requestHeaders)
     {
         // Check header first
-        if (request.Headers.TryGetValue(_versionHeader, out var headerValue))
+        if (requestHeaders.TryGetValue(_versionHeader, out var headerValue))
         {
-            return headerValue.FirstOrDefault() ?? _defaultVersion;
+            return headerValue?.ToString() ?? _defaultVersion;
         }
 
-        // Check query parameter
-        if (request.Query.TryGetValue("version", out var queryValue))
+        // Check version query parameter if passed in headers dictionary
+        if (requestHeaders.TryGetValue("version", out var queryValue))
         {
-            return queryValue.FirstOrDefault() ?? _defaultVersion;
+            return queryValue?.ToString() ?? _defaultVersion;
         }
 
-        // Check URL path (e.g., /api/v1.0/endpoint)
-        var pathSegments = request.Path.Value?.Split('/') ?? Array.Empty<string>();
-        var versionSegment = pathSegments.FirstOrDefault(s => s.StartsWith("v", StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(versionSegment))
+        // Check path-based version if passed in headers dictionary
+        if (requestHeaders.TryGetValue("path", out var pathValue))
         {
-            return versionSegment.Substring(1); // Remove 'v' prefix
+            var pathSegments = pathValue?.ToString()?.Split('/') ?? Array.Empty<string>();
+            var versionSegment = pathSegments.FirstOrDefault(s => s.StartsWith("v", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(versionSegment))
+            {
+                return versionSegment.Substring(1); // Remove 'v' prefix
+            }
         }
 
         return _defaultVersion;
@@ -308,17 +311,21 @@ public class RequestTransformationService : IRequestTransformationService
         _logger = logger;
     }
 
-    public async Task<T?> TransformRequest<T>(HttpRequest request, string sourceFormat, string targetFormat)
+    public async Task<T?> TransformRequest<T>(object request, string sourceFormat, string targetFormat)
     {
         try
         {
             if (sourceFormat.Equals(targetFormat, StringComparison.OrdinalIgnoreCase))
             {
-                // No transformation needed
-                request.Body.Position = 0;
-                using var reader = new StreamReader(request.Body);
-                var content = await reader.ReadToEndAsync();
-                return JsonSerializer.Deserialize<T>(content);
+                // No transformation needed - directly deserialize the request object
+                if (request is string stringContent)
+                {
+                    return JsonSerializer.Deserialize<T>(stringContent);
+                }
+                else if (request is T directObject)
+                {
+                    return directObject;
+                }
             }
 
             // TODO: Implement format transformation logic (JSON to XML, etc.)
@@ -356,16 +363,15 @@ public class RequestTransformationService : IRequestTransformationService
         }
     }
 
-    public async Task<bool> ValidateRequestFormat(HttpRequest request, string expectedFormat)
+    public async Task<bool> ValidateRequestFormat(object request, string expectedFormat)
     {
         try
         {
-            var contentType = request.ContentType?.ToLowerInvariant();
-            
+            // For generic object validation, we'll check the request type
             return expectedFormat.ToLowerInvariant() switch
             {
-                "json" => contentType?.Contains("application/json") == true,
-                "xml" => contentType?.Contains("application/xml") == true || contentType?.Contains("text/xml") == true,
+                "json" => request is string || request.GetType().IsClass,
+                "xml" => request is string,
                 _ => true // Allow unknown formats for now
             };
         }

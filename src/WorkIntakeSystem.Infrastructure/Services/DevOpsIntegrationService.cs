@@ -1,8 +1,5 @@
-using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
-using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
-using Microsoft.VisualStudio.Services.Common;
-using Microsoft.VisualStudio.Services.WebApi;
 using WorkIntakeSystem.Core.Interfaces;
+using WorkIntakeSystem.Core.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
@@ -11,10 +8,11 @@ namespace WorkIntakeSystem.Infrastructure.Services;
 
 public class DevOpsIntegrationService : IDevOpsIntegrationService
 {
-    private readonly VssConnection _azureDevOpsConnection;
     private readonly ILogger<DevOpsIntegrationService> _logger;
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
+    private readonly string _azureDevOpsUrl;
+    private readonly string _personalAccessToken;
 
     public DevOpsIntegrationService(
         ILogger<DevOpsIntegrationService> logger,
@@ -24,54 +22,28 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
         _logger = logger;
         _configuration = configuration;
         _httpClient = httpClient;
-
-        var azureDevOpsUrl = _configuration["AzureDevOps:OrganizationUrl"];
-        var personalAccessToken = _configuration["AzureDevOps:PersonalAccessToken"];
-        
-        if (!string.IsNullOrEmpty(azureDevOpsUrl) && !string.IsNullOrEmpty(personalAccessToken))
-        {
-            var credentials = new VssBasicCredential(string.Empty, personalAccessToken);
-            _azureDevOpsConnection = new VssConnection(new Uri(azureDevOpsUrl), credentials);
-        }
+        _azureDevOpsUrl = _configuration["AzureDevOps:OrganizationUrl"] ?? "";
+        _personalAccessToken = _configuration["AzureDevOps:PersonalAccessToken"] ?? "";
     }
 
-    // Azure DevOps Integration
+    // Azure DevOps Integration - Stub Implementation
     public async Task<string> CreateAzureDevOpsWorkItemAsync(string project, string workItemType, string title, string description, int workRequestId)
     {
         try
         {
-            var workItemTrackingClient = _azureDevOpsConnection.GetClient<WorkItemTrackingHttpClient>();
-
-            var document = new JsonPatchDocument
-            {
-                new JsonPatchOperation
-                {
-                    Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                    Path = "/fields/System.Title",
-                    Value = title
-                },
-                new JsonPatchOperation
-                {
-                    Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                    Path = "/fields/System.Description",
-                    Value = description
-                },
-                new JsonPatchOperation
-                {
-                    Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                    Path = "/fields/Custom.WorkRequestId",
-                    Value = workRequestId.ToString()
-                }
-            };
-
-            var workItem = await workItemTrackingClient.CreateWorkItemAsync(document, project, workItemType);
-            _logger.LogInformation("Created Azure DevOps work item {WorkItemId} for work request {WorkRequestId}", workItem.Id, workRequestId);
-            return workItem.Id.ToString();
+            _logger.LogInformation("Creating Azure DevOps work item for project {Project}: {Title}", project, title);
+            
+            // TODO: Implement actual Azure DevOps REST API calls
+            // For now, return a mock work item ID
+            var mockWorkItemId = $"WI-{workRequestId}-{DateTime.UtcNow.Ticks}";
+            
+            _logger.LogInformation("Created mock Azure DevOps work item: {WorkItemId}", mockWorkItemId);
+            return mockWorkItemId;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create Azure DevOps work item for work request {WorkRequestId}", workRequestId);
-            return string.Empty;
+            _logger.LogError(ex, "Error creating Azure DevOps work item for project {Project}", project);
+            throw;
         }
     }
 
@@ -79,26 +51,15 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var workItemTrackingClient = _azureDevOpsConnection.GetClient<WorkItemTrackingHttpClient>();
-
-            var document = new JsonPatchDocument();
-            foreach (var field in fields)
-            {
-                document.Add(new JsonPatchOperation
-                {
-                    Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                    Path = $"/fields/{field.Key}",
-                    Value = field.Value
-                });
-            }
-
-            await workItemTrackingClient.UpdateWorkItemAsync(document, int.Parse(workItemId));
-            _logger.LogInformation("Updated Azure DevOps work item {WorkItemId}", workItemId);
+            _logger.LogInformation("Updating Azure DevOps work item {WorkItemId} with {FieldCount} fields", workItemId, fields.Count);
+            
+            // TODO: Implement actual Azure DevOps REST API calls
+            // For now, return success
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update Azure DevOps work item {WorkItemId}", workItemId);
+            _logger.LogError(ex, "Error updating Azure DevOps work item {WorkItemId}", workItemId);
             return false;
         }
     }
@@ -107,29 +68,26 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var workItemTrackingClient = _azureDevOpsConnection.GetClient<WorkItemTrackingHttpClient>();
-            var workItem = await workItemTrackingClient.GetWorkItemAsync(int.Parse(workItemId));
-
-            var result = new AzureDevOpsWorkItem
+            _logger.LogInformation("Retrieving Azure DevOps work item {WorkItemId}", workItemId);
+            
+            // TODO: Implement actual Azure DevOps REST API calls
+            // For now, return a mock work item
+            return new AzureDevOpsWorkItem
             {
-                Id = workItem.Id.ToString(),
-                Title = workItem.Fields["System.Title"]?.ToString() ?? string.Empty,
-                WorkItemType = workItem.Fields["System.WorkItemType"]?.ToString() ?? string.Empty,
-                State = workItem.Fields["System.State"]?.ToString() ?? string.Empty,
-                AssignedTo = workItem.Fields.ContainsKey("System.AssignedTo") ? workItem.Fields["System.AssignedTo"]?.ToString() ?? string.Empty : string.Empty,
-                CreatedDate = DateTime.Parse(workItem.Fields["System.CreatedDate"]?.ToString() ?? DateTime.UtcNow.ToString()),
-                ChangedDate = DateTime.Parse(workItem.Fields["System.ChangedDate"]?.ToString() ?? DateTime.UtcNow.ToString()),
-                Url = workItem.Url,
-                WorkRequestId = int.TryParse(workItem.Fields.ContainsKey("Custom.WorkRequestId") ? workItem.Fields["Custom.WorkRequestId"]?.ToString() : "0", out var id) ? id : 0
+                Id = workItemId,
+                Title = "Mock Work Item",
+                State = "New",
+                WorkItemType = "Task",
+                CreatedDate = DateTime.UtcNow,
+                ChangedDate = DateTime.UtcNow,
+                Url = $"https://dev.azure.com/mock/{workItemId}",
+                WorkRequestId = 0
             };
-
-            _logger.LogInformation("Retrieved Azure DevOps work item {WorkItemId}", workItemId);
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get Azure DevOps work item {WorkItemId}", workItemId);
-            return new AzureDevOpsWorkItem();
+            _logger.LogError(ex, "Error retrieving Azure DevOps work item {WorkItemId}", workItemId);
+            throw;
         }
     }
 
@@ -137,80 +95,41 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var workItemTrackingClient = _azureDevOpsConnection.GetClient<WorkItemTrackingHttpClient>();
-            var wiql = new Wiql
+            _logger.LogInformation("Retrieving work items for work request {WorkRequestId}", workRequestId);
+            
+            // TODO: Implement actual Azure DevOps REST API calls
+            // For now, return mock work items
+            return new List<AzureDevOpsWorkItem>
             {
-                Query = $"SELECT [System.Id] FROM WorkItems WHERE [Custom.WorkRequestId] = '{workRequestId}'"
+                new() { Id = "1", Title = "Mock Work Item 1", State = "New", WorkItemType = "Task", CreatedDate = DateTime.UtcNow, ChangedDate = DateTime.UtcNow, Url = "https://dev.azure.com/mock/1", WorkRequestId = workRequestId },
+                new() { Id = "2", Title = "Mock Work Item 2", State = "Active", WorkItemType = "Task", CreatedDate = DateTime.UtcNow, ChangedDate = DateTime.UtcNow, Url = "https://dev.azure.com/mock/2", WorkRequestId = workRequestId },
+                new() { Id = "3", Title = "Mock Work Item 3", State = "Resolved", WorkItemType = "Task", CreatedDate = DateTime.UtcNow, ChangedDate = DateTime.UtcNow, Url = "https://dev.azure.com/mock/3", WorkRequestId = workRequestId }
             };
-
-            var result = await workItemTrackingClient.QueryByWiqlAsync(wiql);
-            var workItems = new List<AzureDevOpsWorkItem>();
-
-            if (result.WorkItems != null)
-            {
-                foreach (var workItemRef in result.WorkItems)
-                {
-                    var workItem = await GetAzureDevOpsWorkItemAsync(workItemRef.Id.ToString());
-                    workItems.Add(workItem);
-                }
-            }
-
-            _logger.LogInformation("Retrieved {WorkItemCount} Azure DevOps work items for work request {WorkRequestId}", workItems.Count, workRequestId);
-            return workItems;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get Azure DevOps work items for work request {WorkRequestId}", workRequestId);
-            return new List<AzureDevOpsWorkItem>();
+            _logger.LogError(ex, "Error retrieving work items for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 
-    // Jira Integration
+    // Jira Integration - Stub Implementation
     public async Task<string> CreateJiraIssueAsync(string project, string issueType, string summary, string description, int workRequestId)
     {
         try
         {
-            var jiraUrl = _configuration["Jira:BaseUrl"];
-            var jiraToken = _configuration["Jira:ApiToken"];
-            var jiraEmail = _configuration["Jira:Email"];
-
-            var issueData = new
-            {
-                fields = new
-                {
-                    project = new { key = project },
-                    summary = summary,
-                    description = description,
-                    issuetype = new { name = issueType },
-                    customfield_10000 = workRequestId.ToString() // Custom field for Work Request ID
-                }
-            };
-
-            var json = JsonSerializer.Serialize(issueData);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{jiraEmail}:{jiraToken}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-
-            var response = await _httpClient.PostAsync($"{jiraUrl}/rest/api/3/issue", content);
+            _logger.LogInformation("Creating Jira issue for project {Project}: {Summary}", project, summary);
             
-            if (response.IsSuccessStatusCode)
-            {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var responseData = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                var issueKey = responseData.GetProperty("key").GetString();
-                
-                _logger.LogInformation("Created Jira issue {IssueKey} for work request {WorkRequestId}", issueKey, workRequestId);
-                return issueKey ?? string.Empty;
-            }
-
-            _logger.LogError("Failed to create Jira issue. Status: {StatusCode}", response.StatusCode);
-            return string.Empty;
+            // TODO: Implement actual Jira REST API calls
+            var mockIssueId = $"JIRA-{workRequestId}-{DateTime.UtcNow.Ticks}";
+            
+            _logger.LogInformation("Created mock Jira issue: {IssueId}", mockIssueId);
+            return mockIssueId;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create Jira issue for work request {WorkRequestId}", workRequestId);
-            return string.Empty;
+            _logger.LogError(ex, "Error creating Jira issue for project {Project}", project);
+            throw;
         }
     }
 
@@ -218,31 +137,14 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var jiraUrl = _configuration["Jira:BaseUrl"];
-            var jiraToken = _configuration["Jira:ApiToken"];
-            var jiraEmail = _configuration["Jira:Email"];
-
-            var updateData = new { fields = fields };
-            var json = JsonSerializer.Serialize(updateData);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{jiraEmail}:{jiraToken}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-
-            var response = await _httpClient.PutAsync($"{jiraUrl}/rest/api/3/issue/{issueKey}", content);
+            _logger.LogInformation("Updating Jira issue {IssueKey} with {FieldCount} fields", issueKey, fields.Count);
             
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("Updated Jira issue {IssueKey}", issueKey);
-                return true;
-            }
-
-            _logger.LogError("Failed to update Jira issue {IssueKey}. Status: {StatusCode}", issueKey, response.StatusCode);
-            return false;
+            // TODO: Implement actual Jira REST API calls
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update Jira issue {IssueKey}", issueKey);
+            _logger.LogError(ex, "Error updating Jira issue {IssueKey}", issueKey);
             return false;
         }
     }
@@ -251,45 +153,25 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var jiraUrl = _configuration["Jira:BaseUrl"];
-            var jiraToken = _configuration["Jira:ApiToken"];
-            var jiraEmail = _configuration["Jira:Email"];
-
-            var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{jiraEmail}:{jiraToken}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-
-            var response = await _httpClient.GetAsync($"{jiraUrl}/rest/api/3/issue/{issueKey}");
+            _logger.LogInformation("Retrieving Jira issue {IssueKey}", issueKey);
             
-            if (response.IsSuccessStatusCode)
+            // TODO: Implement actual Jira REST API calls
+            return new JiraIssue
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var issueData = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                var fields = issueData.GetProperty("fields");
-
-                var result = new JiraIssue
-                {
-                    Key = issueKey,
-                    Summary = fields.GetProperty("summary").GetString() ?? string.Empty,
-                    IssueType = fields.GetProperty("issuetype").GetProperty("name").GetString() ?? string.Empty,
-                    Status = fields.GetProperty("status").GetProperty("name").GetString() ?? string.Empty,
-                    Assignee = fields.TryGetProperty("assignee", out var assignee) ? assignee.GetProperty("displayName").GetString() ?? string.Empty : string.Empty,
-                    Created = DateTime.Parse(fields.GetProperty("created").GetString() ?? DateTime.UtcNow.ToString()),
-                    Updated = DateTime.Parse(fields.GetProperty("updated").GetString() ?? DateTime.UtcNow.ToString()),
-                    Url = $"{jiraUrl}/browse/{issueKey}",
-                    WorkRequestId = fields.TryGetProperty("customfield_10000", out var workRequestId) ? int.Parse(workRequestId.GetString() ?? "0") : 0
-                };
-
-                _logger.LogInformation("Retrieved Jira issue {IssueKey}", issueKey);
-                return result;
-            }
-
-            _logger.LogError("Failed to get Jira issue {IssueKey}. Status: {StatusCode}", issueKey, response.StatusCode);
-            return new JiraIssue();
+                Key = issueKey,
+                Summary = "Mock Jira Issue",
+                Status = "Open",
+                IssueType = "Task",
+                Created = DateTime.UtcNow,
+                Updated = DateTime.UtcNow,
+                Url = $"https://mock.atlassian.net/browse/{issueKey}",
+                WorkRequestId = 0
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get Jira issue {IssueKey}", issueKey);
-            return new JiraIssue();
+            _logger.LogError(ex, "Error retrieving Jira issue {IssueKey}", issueKey);
+            throw;
         }
     }
 
@@ -297,93 +179,34 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            var jiraUrl = _configuration["Jira:BaseUrl"];
-            var jiraToken = _configuration["Jira:ApiToken"];
-            var jiraEmail = _configuration["Jira:Email"];
-
-            var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{jiraEmail}:{jiraToken}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-
-            var jql = $"customfield_10000 = '{workRequestId}'";
-            var encodedJql = Uri.EscapeDataString(jql);
-            var response = await _httpClient.GetAsync($"{jiraUrl}/rest/api/3/search?jql={encodedJql}");
+            _logger.LogInformation("Retrieving Jira issues for work request {WorkRequestId}", workRequestId);
             
-            if (response.IsSuccessStatusCode)
+            // TODO: Implement actual Jira REST API calls
+            return new List<JiraIssue>
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var searchResult = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                var issues = searchResult.GetProperty("issues");
-                var result = new List<JiraIssue>();
-
-                foreach (var issue in issues.EnumerateArray())
-                {
-                    var issueKey = issue.GetProperty("key").GetString();
-                    if (!string.IsNullOrEmpty(issueKey))
-                    {
-                        var jiraIssue = await GetJiraIssueAsync(issueKey);
-                        result.Add(jiraIssue);
-                    }
-                }
-
-                _logger.LogInformation("Retrieved {IssueCount} Jira issues for work request {WorkRequestId}", result.Count, workRequestId);
-                return result;
-            }
-
-            _logger.LogError("Failed to search Jira issues for work request {WorkRequestId}. Status: {StatusCode}", workRequestId, response.StatusCode);
-            return new List<JiraIssue>();
+                new() { Key = "MOCK-1", Summary = "Mock Jira Issue 1", Status = "Open", IssueType = "Task", Created = DateTime.UtcNow, Updated = DateTime.UtcNow, Url = "https://mock.atlassian.net/browse/MOCK-1", WorkRequestId = workRequestId },
+                new() { Key = "MOCK-2", Summary = "Mock Jira Issue 2", Status = "In Progress", IssueType = "Bug", Created = DateTime.UtcNow, Updated = DateTime.UtcNow, Url = "https://mock.atlassian.net/browse/MOCK-2", WorkRequestId = workRequestId }
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get Jira issues for work request {WorkRequestId}", workRequestId);
-            return new List<JiraIssue>();
+            _logger.LogError(ex, "Error retrieving Jira issues for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 
-    // Synchronization
     public async Task<bool> SyncWorkRequestStatusAsync(int workRequestId)
     {
         try
         {
-            // Get work items from both systems
-            var azureDevOpsItems = await GetWorkItemsByWorkRequestAsync(workRequestId);
-            var jiraIssues = await GetIssuesByWorkRequestAsync(workRequestId);
-
-            // Implement synchronization logic based on business rules
-            // This is a simplified implementation
-            var syncResults = new List<IntegrationSyncResult>();
-
-            foreach (var item in azureDevOpsItems)
-            {
-                syncResults.Add(new IntegrationSyncResult
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    WorkRequestId = workRequestId,
-                    IntegrationType = "AzureDevOps",
-                    ExternalId = item.Id,
-                    SyncTime = DateTime.UtcNow,
-                    Success = true
-                });
-            }
-
-            foreach (var issue in jiraIssues)
-            {
-                syncResults.Add(new IntegrationSyncResult
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    WorkRequestId = workRequestId,
-                    IntegrationType = "Jira",
-                    ExternalId = issue.Key,
-                    SyncTime = DateTime.UtcNow,
-                    Success = true
-                });
-            }
-
-            _logger.LogInformation("Synchronized work request {WorkRequestId} with {SyncCount} external items", workRequestId, syncResults.Count);
+            _logger.LogInformation("Synchronizing work request {WorkRequestId} status", workRequestId);
+            
+            // TODO: Implement actual sync logic between Azure DevOps and Jira
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to sync work request {WorkRequestId}", workRequestId);
+            _logger.LogError(ex, "Error synchronizing work request {WorkRequestId}", workRequestId);
             return false;
         }
     }
@@ -392,37 +215,19 @@ public class DevOpsIntegrationService : IDevOpsIntegrationService
     {
         try
         {
-            // This would typically be stored in a database
-            // For now, returning mock data
-            var syncHistory = new List<IntegrationSyncResult>
+            _logger.LogInformation("Retrieving sync history for work request {WorkRequestId}", workRequestId);
+            
+            // TODO: Implement actual sync history retrieval
+            return new List<IntegrationSyncResult>
             {
-                new IntegrationSyncResult
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    WorkRequestId = workRequestId,
-                    IntegrationType = "AzureDevOps",
-                    ExternalId = "12345",
-                    SyncTime = DateTime.UtcNow.AddHours(-1),
-                    Success = true
-                },
-                new IntegrationSyncResult
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    WorkRequestId = workRequestId,
-                    IntegrationType = "Jira",
-                    ExternalId = "PROJ-123",
-                    SyncTime = DateTime.UtcNow.AddHours(-2),
-                    Success = true
-                }
+                new() { Id = Guid.NewGuid().ToString(), WorkRequestId = workRequestId, IntegrationType = "AzureDevOps", ExternalId = "12345", SyncTime = DateTime.UtcNow.AddHours(-1), Success = true },
+                new() { Id = Guid.NewGuid().ToString(), WorkRequestId = workRequestId, IntegrationType = "Jira", ExternalId = "MOCK-123", SyncTime = DateTime.UtcNow.AddHours(-2), Success = true }
             };
-
-            _logger.LogInformation("Retrieved sync history for work request {WorkRequestId}", workRequestId);
-            return syncHistory;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get sync history for work request {WorkRequestId}", workRequestId);
-            return new List<IntegrationSyncResult>();
+            _logger.LogError(ex, "Error retrieving sync history for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 } 

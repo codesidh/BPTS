@@ -2,7 +2,7 @@ using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.PowerBI.Api;
 using Microsoft.PowerBI.Api.Models;
-using Microsoft.SharePoint.Client;
+// using Microsoft.SharePoint.Client; // Commented out for stub implementation
 using WorkIntakeSystem.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
