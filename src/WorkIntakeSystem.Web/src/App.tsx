@@ -11,23 +11,32 @@ import Departments from './pages/Departments';
 import BusinessVerticals from './pages/BusinessVerticals';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
+import ExternalIntegrations from './pages/ExternalIntegrations';
+import ConfigurationManagement from './pages/ConfigurationManagement';
+import EventAuditTrail from './pages/EventAuditTrail';
+import AuthProvider from './components/AuthProvider';
 
 function App() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/work-requests" element={<WorkRequests />} />
-          <Route path="/work-requests/:id" element={<WorkRequestDetail />} />
-          <Route path="/work-requests/create" element={<CreateWorkRequest />} />
-          <Route path="/priority-voting" element={<PriorityVoting />} />
-          <Route path="/departments" element={<Departments />} />
-          <Route path="/business-verticals" element={<BusinessVerticals />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/reports" element={<Reports />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/work-requests" element={<WorkRequests />} />
+            <Route path="/work-requests/:id" element={<WorkRequestDetail />} />
+            <Route path="/work-requests/create" element={<CreateWorkRequest />} />
+            <Route path="/priority-voting" element={<PriorityVoting />} />
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/business-verticals" element={<BusinessVerticals />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/external-integrations" element={<ExternalIntegrations />} />
+            <Route path="/configuration" element={<ConfigurationManagement />} />
+            <Route path="/audit-trail" element={<EventAuditTrail />} />
+          </Routes>
+        </AuthProvider>
       </Layout>
     </Box>
   );

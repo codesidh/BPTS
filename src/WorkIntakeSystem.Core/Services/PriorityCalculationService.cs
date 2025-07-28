@@ -9,15 +9,18 @@ public class PriorityCalculationService : IPriorityCalculationService
     private readonly IWorkRequestRepository _workRequestRepository;
     private readonly IPriorityRepository _priorityRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IConfigurationService _configurationService;
 
     public PriorityCalculationService(
         IWorkRequestRepository workRequestRepository,
         IPriorityRepository priorityRepository,
-        IDepartmentRepository departmentRepository)
+        IDepartmentRepository departmentRepository,
+        IConfigurationService configurationService)
     {
         _workRequestRepository = workRequestRepository;
         _priorityRepository = priorityRepository;
         _departmentRepository = departmentRepository;
+        _configurationService = configurationService;
     }
 
     public async Task<decimal> CalculatePriorityScoreAsync(WorkRequest workRequest)
@@ -68,30 +71,27 @@ public class PriorityCalculationService : IPriorityCalculationService
     public async Task<decimal> CalculateTimeDecayFactorAsync(DateTime createdDate)
     {
         var daysOld = (DateTime.UtcNow - createdDate).Days;
-        
-        // Configurable time decay curve - increases priority for older requests
-        // Using a logarithmic curve: 1 + log(days + 1) / 100
+        var enabled = await _configurationService.GetValueAsync<bool>("PriorityCalculation:TimeDecayEnabled");
+        var maxMultiplier = await _configurationService.GetValueAsync<decimal>("PriorityCalculation:MaxTimeDecayMultiplier");
+        if (!enabled) return 1.0m;
         var factor = 1.0m + (decimal)(Math.Log(daysOld + 1) / 100.0);
-        
-        return Math.Min(2.0m, factor); // Cap at 2x multiplier
+        return Math.Min(maxMultiplier > 0 ? maxMultiplier : 2.0m, factor);
     }
 
     public async Task<decimal> CalculateBusinessValueWeightAsync(WorkRequest workRequest)
     {
-        // Business value weight ranges from 1.0 to 2.0
-        return 1.0m + workRequest.BusinessValue;
+        var baseWeight = await _configurationService.GetValueAsync<decimal>("PriorityCalculation:BusinessValueWeight");
+        return (baseWeight > 0 ? baseWeight : 1.0m) + workRequest.BusinessValue;
     }
 
     public async Task<decimal> CalculateCapacityAdjustmentAsync(WorkRequest workRequest)
     {
+        var enabled = await _configurationService.GetValueAsync<bool>("PriorityCalculation:CapacityAdjustmentEnabled");
+        if (!enabled) return 1.0m;
         var department = await _departmentRepository.GetByIdAsync(workRequest.DepartmentId);
         if (department == null) return 1.0m;
-
-        // Capacity adjustment based on department utilization
-        // Higher utilization = lower capacity adjustment (0.5-1.5 range)
         var utilizationFactor = department.CurrentUtilization / 100.0m;
         var adjustment = 1.5m - utilizationFactor;
-        
         return Math.Min(1.5m, Math.Max(0.5m, adjustment));
     }
 

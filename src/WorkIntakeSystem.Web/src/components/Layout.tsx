@@ -27,6 +27,9 @@ import {
   Business as BusinessIcon,
   People as PeopleIcon,
   Assessment as ReportsIcon,
+  IntegrationInstructions as IntegrationIcon,
+  Settings as SettingsIcon,
+  Timeline as TimelineIcon,
   AccountCircle,
   Logout,
   Settings,
@@ -54,6 +57,9 @@ const navItems: NavItem[] = [
   { text: 'Business Verticals', icon: <BusinessIcon />, path: '/business-verticals' },
   { text: 'Users', icon: <PeopleIcon />, path: '/users', divider: true },
   { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+  { text: 'Integrations', icon: <IntegrationIcon />, path: '/external-integrations' },
+  { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
+  { text: 'Audit Trail', icon: <TimelineIcon />, path: '/audit-trail' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {

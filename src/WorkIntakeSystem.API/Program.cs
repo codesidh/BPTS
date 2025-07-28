@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.AspNetCore.Authentication.Windows;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using WorkIntakeSystem.Infrastructure.Data;
 using WorkIntakeSystem.Core.Interfaces;
@@ -8,6 +10,7 @@ using WorkIntakeSystem.Infrastructure.Repositories;
 using FluentValidation;
 using AutoMapper;
 using System.Reflection;
+using WorkIntakeSystem.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,9 +42,35 @@ builder.Services.AddDbContext<WorkIntakeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("WorkIntakeSystem.Infrastructure")));
 
-// Authentication - Windows Authentication
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-    .AddNegotiate();
+// Windows Authentication
+var windowsAuthEnabled = builder.Configuration.GetValue<bool>("WindowsAuthentication:Enabled", true);
+if (windowsAuthEnabled)
+{
+    builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+        .AddNegotiate(options =>
+        {
+            options.ForwardDefaultSelector = context =>
+            {
+                // Use Windows authentication for API requests
+                return NegotiateDefaults.AuthenticationScheme;
+            };
+        });
+}
+
+// ADFS Authentication (hybrid scenario)
+var adfsEnabled = builder.Configuration.GetValue<bool>("ADFS:Enabled", false);
+if (adfsEnabled)
+{
+    builder.Services.AddAuthentication()
+        .AddJwtBearer("ADFS", options =>
+        {
+            options.Authority = builder.Configuration["ADFS:Authority"];
+            options.Audience = builder.Configuration["ADFS:Audience"];
+            options.MetadataAddress = builder.Configuration["ADFS:MetadataUrl"];
+            options.RequireHttpsMetadata = true;
+            options.SaveToken = true;
+        });
+}
 
 builder.Services.AddAuthorization();
 
@@ -56,6 +85,9 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
+// Memory caching for authentication
+builder.Services.AddMemoryCache();
 
 // Redis caching
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -76,9 +108,56 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 builder.Services.AddScoped<IWorkRequestRepository, WorkRequestRepository>();
 builder.Services.AddScoped<IPriorityRepository, PriorityRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
+builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
+
+// Authentication services
+builder.Services.AddScoped<IWindowsAuthenticationService, WindowsAuthenticationService>();
+
+// API Gateway services
+builder.Services.AddScoped<IApiGatewayService, ApiGatewayService>();
+builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
+builder.Services.AddScoped<IApiVersioningService, ApiVersioningService>();
+builder.Services.AddScoped<IRequestTransformationService, RequestTransformationService>();
+
+// Multi-tier caching services
+builder.Services.AddScoped<IMultiTierCachingService, MultiTierCachingService>();
+builder.Services.AddScoped<IDatabaseQueryCacheService, DatabaseQueryCacheService>();
+builder.Services.AddScoped<IConfigurationCacheService, ConfigurationCacheService>();
+builder.Services.AddScoped<IIISOutputCacheService, IISOutputCacheService>();
+
+// Service Broker messaging services
+builder.Services.AddScoped<IServiceBrokerService, ServiceBrokerService>();
+builder.Services.AddSingleton<IMessageHandlerRegistry, MessageHandlerRegistry>();
+
+// Background services
+builder.Services.AddHostedService<ServiceBrokerHostedService>();
 
 // Register services
-builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationService>();
+builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationService>(sp =>
+    new PriorityCalculationService(
+        sp.GetRequiredService<IWorkRequestRepository>(),
+        sp.GetRequiredService<IPriorityRepository>(),
+        sp.GetRequiredService<IDepartmentRepository>(),
+        sp.GetRequiredService<IConfigurationService>()
+    )
+);
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>(sp =>
+    new ConfigurationService(
+        sp.GetRequiredService<ISystemConfigurationRepository>(),
+        sp.GetRequiredService<IConfiguration>()
+    )
+);
+
+// Register analytics and integration services
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IExternalIntegrationService, ExternalIntegrationService>();
+builder.Services.AddScoped<IProjectManagementIntegration, ProjectManagementIntegration>();
+builder.Services.AddScoped<ICalendarIntegration, CalendarIntegration>();
+builder.Services.AddScoped<INotificationIntegration, NotificationIntegration>();
+
+// Register HttpClient for external integrations
+builder.Services.AddHttpClient();
 
 // Health checks
 builder.Services.AddHealthChecks()
@@ -100,6 +179,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
+
+// Add API Gateway middleware before authentication
+app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.ApiGatewayMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

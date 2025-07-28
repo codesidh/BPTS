@@ -10,11 +10,15 @@ import {
   DashboardStats,
   PriorityLevel
 } from '../types';
+import { useMsal } from '@azure/msal-react';
+import { PublicClientApplication } from '@azure/msal-browser';
 
 class ApiService {
   private api: AxiosInstance;
+  private msalInstance?: PublicClientApplication;
 
-  constructor() {
+  constructor(msalInstance?: PublicClientApplication) {
+    this.msalInstance = msalInstance;
     this.api = axios.create({
       baseURL: '/api',
       timeout: 10000,
@@ -25,17 +29,20 @@ class ApiService {
 
     // Request interceptor for authentication
     this.api.interceptors.request.use(
-      (config) => {
-        // Add authentication headers if needed
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+      async (config) => {
+        if (this.msalInstance) {
+          const accounts = this.msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            const tokenResponse = await this.msalInstance.acquireTokenSilent({
+              account: accounts[0],
+              scopes: ['User.Read'],
+            });
+            config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
+          }
+        }
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
 
     // Response interceptor for error handling
@@ -206,7 +213,10 @@ class ApiService {
     const response = await this.api.get<{ status: string }>('/health');
     return response.data;
   }
+
+  public getApi() {
+    return this.api;
+  }
 }
 
-export const apiService = new ApiService();
-export default apiService;
+export const createApiService = (msalInstance?: PublicClientApplication) => new ApiService(msalInstance);
