@@ -6,7 +6,7 @@ namespace WorkIntakeSystem.Core.Entities;
 
 public class User : BaseEntity
 {
-        [Required]
+    [Required]
     [MaxLength(255)]
     public string Email { get; set; } = string.Empty;
 
@@ -15,8 +15,11 @@ public class User : BaseEntity
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(255)]
-    public string? WindowsIdentity { get; set; }
-    
+    public string? PasswordHash { get; set; }
+
+    [MaxLength(255)]
+    public string? PasswordSalt { get; set; }
+
     [Required]
     public int DepartmentId { get; set; }
     

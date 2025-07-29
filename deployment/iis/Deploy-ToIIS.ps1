@@ -1,77 +1,27 @@
-# Work Intake System - IIS Deployment Script
-# Enterprise deployment script for Windows Server with IIS
+# Work Intake System IIS Deployment Script
+# This script deploys the Work Intake System to IIS with JWT authentication
 
 param(
-    [Parameter(Mandatory = $true)]
     [string]$SiteName = "WorkIntakeSystem",
-    
-    [Parameter(Mandatory = $true)]
-    [string]$PhysicalPath,
-    
-    [Parameter(Mandatory = $false)]
+    [string]$AppPoolName = "WorkIntakeSystem",
+    [string]$PhysicalPath = "C:\inetpub\wwwroot\WorkIntakeSystem",
     [int]$Port = 80,
-    
-    [Parameter(Mandatory = $false)]
     [int]$HttpsPort = 443,
-    
-    [Parameter(Mandatory = $false)]
-    [string]$AppPoolName = "WorkIntakeSystemPool",
-    
-    [Parameter(Mandatory = $false)]
-    [string]$ConnectionString,
-    
-    [Parameter(Mandatory = $false)]
-    [string]$RedisConnectionString = "localhost:6379",
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$EnableSSL,
-    
-    [Parameter(Mandatory = $false)]
-    [string]$CertificateThumbprint
+    [bool]$EnableSSL = $false,
+    [string]$CertificateThumbprint = "",
+    [string]$Environment = "Production"
 )
 
-# Check if running as Administrator
+# Ensure running as Administrator
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Error "This script must be run as Administrator. Exiting..."
+    Write-Error "This script must be run as Administrator"
     exit 1
 }
 
-Write-Host "Starting Work Intake System IIS Deployment..." -ForegroundColor Green
-
-# Import required modules
-Import-Module WebAdministration
-
 try {
-    # 1. Install IIS Features if not already installed
-    Write-Host "Ensuring IIS features are installed..." -ForegroundColor Yellow
+    Write-Host "Starting Work Intake System deployment..." -ForegroundColor Green
     
-    $features = @(
-        "IIS-WebServerRole",
-        "IIS-WebServer",
-        "IIS-CommonHttpFeatures",
-        "IIS-ApplicationDevelopment",
-        "IIS-NetFxExtensibility45",
-        "IIS-ISAPIExtensions",
-        "IIS-ISAPIFilter",
-        "IIS-AspNetCoreModule",
-        "IIS-ASPNET45",
-        "IIS-WindowsAuthentication",
-        "IIS-RequestFiltering",
-        "IIS-StaticContent",
-        "IIS-DefaultDocument",
-        "IIS-DirectoryBrowsing",
-        "IIS-HttpErrors",
-        "IIS-HttpRedirect",
-        "IIS-HttpCompressionStatic",
-        "IIS-HttpCompressionDynamic",
-        "IIS-ApplicationRequestRouting"
-    )
-    
-    foreach ($feature in $features) {
-        Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart
-    }
-    
-    # 2. Create Application Pool
+    # 1. Create Application Pool
     Write-Host "Creating Application Pool: $AppPoolName" -ForegroundColor Yellow
     
     if (Get-IISAppPool -Name $AppPoolName -ErrorAction SilentlyContinue) {
@@ -80,13 +30,20 @@ try {
     }
     
     New-WebAppPool -Name $AppPoolName -Force
-    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name processModel.identityType -Value ApplicationPoolIdentity
-    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ""
-    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name processModel.loadUserProfile -Value $true
-    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name processModel.idleTimeout -Value "00:00:00"
-    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name recycling.periodicRestart.time -Value "1.05:00:00"
     
-    Write-Host "Application Pool created successfully" -ForegroundColor Green
+    # Configure Application Pool settings
+    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name processModel.identityType -Value ApplicationPoolIdentity
+    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name processModel.idleTimeout -Value "00:00:00"
+    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name recycling.periodicRestart.time -Value "00:00:00"
+    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ""
+    Set-ItemProperty -Path "IIS:\AppPools\$AppPoolName" -Name startMode -Value AlwaysRunning
+    
+    # 2. Create Physical Directory
+    Write-Host "Creating Physical Directory: $PhysicalPath" -ForegroundColor Yellow
+    
+    if (!(Test-Path $PhysicalPath)) {
+        New-Item -ItemType Directory -Path $PhysicalPath -Force
+    }
     
     # 3. Create Website
     Write-Host "Creating Website: $SiteName" -ForegroundColor Yellow
@@ -113,82 +70,97 @@ try {
         }
     }
     
-    # 5. Configure Windows Authentication
-    Write-Host "Configuring Windows Authentication..." -ForegroundColor Yellow
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true -PSPath "IIS:\" -Location "$SiteName"
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false -PSPath "IIS:\" -Location "$SiteName"
+    # 5. Configure JWT Authentication (Anonymous enabled for JWT)
+    Write-Host "Configuring JWT Authentication..." -ForegroundColor Yellow
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $false -PSPath "IIS:\" -Location "$SiteName"
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $true -PSPath "IIS:\" -Location "$SiteName"
     
     # 6. Configure Application Settings
     Write-Host "Configuring application settings..." -ForegroundColor Yellow
     
-    if ($ConnectionString) {
-        # Set connection string in web.config or appsettings
-        # This would typically be done through secure configuration management
-        Write-Host "Connection string configuration should be handled through secure config management" -ForegroundColor Yellow
+    # Set environment variable
+    Set-WebConfigurationProperty -Filter "/system.webServer/aspNetCore/environmentVariables/environmentVariable[@name='ASPNETCORE_ENVIRONMENT']" -Name value -Value $Environment -PSPath "IIS:\" -Location "$SiteName"
+    
+    # 7. Configure URL Rewrite for SPA
+    Write-Host "Configuring URL Rewrite for SPA..." -ForegroundColor Yellow
+    
+    $rewriteRule = @"
+    <rule name="SPA Routes" stopProcessing="true">
+        <match url=".*" />
+        <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
+        </conditions>
+        <action type="Rewrite" url="/" />
+    </rule>
+"@
+    
+    Add-WebConfigurationProperty -Filter "/system.webServer/rewrite/rules" -Name "." -Value @{name="SPA Routes"} -PSPath "IIS:\" -Location "$SiteName"
+    
+    # 8. Configure Security Headers
+    Write-Host "Configuring security headers..." -ForegroundColor Yellow
+    
+    $headers = @(
+        @{name="X-Frame-Options"; value="SAMEORIGIN"},
+        @{name="X-XSS-Protection"; value="1; mode=block"},
+        @{name="X-Content-Type-Options"; value="nosniff"},
+        @{name="Referrer-Policy"; value="strict-origin-when-cross-origin"}
+    )
+    
+    foreach ($header in $headers) {
+        Add-WebConfigurationProperty -Filter "/system.webServer/httpProtocol/customHeaders" -Name "." -Value $header -PSPath "IIS:\" -Location "$SiteName"
     }
     
-    # 7. Set Permissions
+    # 9. Configure Compression
+    Write-Host "Configuring compression..." -ForegroundColor Yellow
+    
+    Enable-WebGlobalModule -Name "DynamicCompressionModule"
+    Enable-WebGlobalModule -Name "StaticCompressionModule"
+    
+    # 10. Configure Caching
+    Write-Host "Configuring caching..." -ForegroundColor Yellow
+    
+    $cacheExtensions = @(".css", ".js", ".png", ".jpg", ".gif", ".ico", ".svg", ".woff", ".woff2", ".ttf", ".eot")
+    
+    foreach ($ext in $cacheExtensions) {
+        Add-WebConfigurationProperty -Filter "/system.webServer/caching/profiles" -Name "." -Value @{extension=$ext; policy="CacheForTimePeriod"; duration="00:01:00:00"} -PSPath "IIS:\" -Location "$SiteName"
+    }
+    
+    # 11. Set File Permissions
     Write-Host "Setting file permissions..." -ForegroundColor Yellow
     
-    # Grant IIS_IUSRS read and execute permissions
-    icacls $PhysicalPath /grant "IIS_IUSRS:(OI)(CI)RX" /T
+    $acl = Get-Acl $PhysicalPath
+    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("IIS AppPool\$AppPoolName", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $acl.SetAccessRule($accessRule)
+    Set-Acl -Path $PhysicalPath -AclObject $acl
     
-    # Grant Application Pool identity modify permissions to logs folder
-    $logsPath = Join-Path $PhysicalPath "logs"
-    if (!(Test-Path $logsPath)) {
-        New-Item -ItemType Directory -Path $logsPath -Force
-    }
-    icacls $logsPath /grant "IIS AppPool\$AppPoolName:(OI)(CI)M" /T
-    
-    # 8. Configure IIS Modules
-    Write-Host "Configuring IIS modules..." -ForegroundColor Yellow
-    
-    # Enable compression
-    Set-WebConfigurationProperty -Filter "/system.webServer/httpCompression" -Name directory -Value "%SystemRoot%\temp\IIS Temporary Compressed Files" -PSPath "IIS:\" -Location "$SiteName"
-    Set-WebConfigurationProperty -Filter "/system.webServer/httpCompression" -Name staticCompressionEnableCpuUsage -Value 80 -PSPath "IIS:\" -Location "$SiteName"
-    Set-WebConfigurationProperty -Filter "/system.webServer/httpCompression" -Name dynamicCompressionEnableCpuUsage -Value 80 -PSPath "IIS:\" -Location "$SiteName"
-    
-    # 9. Start Application Pool and Website
-    Write-Host "Starting Application Pool and Website..." -ForegroundColor Yellow
-    Start-WebAppPool -Name $AppPoolName
+    # 12. Start the website
+    Write-Host "Starting website..." -ForegroundColor Yellow
     Start-Website -Name $SiteName
     
-    # 10. Verify deployment
-    Write-Host "Verifying deployment..." -ForegroundColor Yellow
+    # 13. Health Check
+    Write-Host "Performing health check..." -ForegroundColor Yellow
     
-    $appPoolState = Get-WebAppPoolState -Name $AppPoolName
-    $siteState = Get-WebsiteState -Name $SiteName
+    $url = if ($EnableSSL -and $CertificateThumbprint) { "https://localhost:$HttpsPort" } else { "http://localhost:$Port" }
     
-    Write-Host "Application Pool State: $($appPoolState.Value)" -ForegroundColor Cyan
-    Write-Host "Website State: $($siteState.Value)" -ForegroundColor Cyan
-    
-    # Test HTTP response
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:$Port/health" -UseBasicParsing -TimeoutSec 30
-        Write-Host "Health check response: $($response.StatusCode)" -ForegroundColor Green
+        $response = Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 30
+        if ($response.StatusCode -eq 200) {
+            Write-Host "Health check passed!" -ForegroundColor Green
+        } else {
+            Write-Warning "Health check returned status code: $($response.StatusCode)"
+        }
     } catch {
         Write-Warning "Health check failed: $($_.Exception.Message)"
     }
     
-    Write-Host "`nDeployment completed successfully!" -ForegroundColor Green
-    Write-Host "Site URL: http://localhost:$Port" -ForegroundColor Cyan
-    if ($EnableSSL) {
-        Write-Host "HTTPS URL: https://localhost:$HttpsPort" -ForegroundColor Cyan
-    }
+    Write-Host "Deployment completed successfully!" -ForegroundColor Green
+    Write-Host "Website URL: $url" -ForegroundColor Cyan
+    Write-Host "Application Pool: $AppPoolName" -ForegroundColor Cyan
+    Write-Host "Physical Path: $PhysicalPath" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Deployment failed: $($_.Exception.Message)"
-    Write-Error $_.ScriptStackTrace
     exit 1
-}
-
-# Display post-deployment checklist
-Write-Host "`n=== POST-DEPLOYMENT CHECKLIST ===" -ForegroundColor Magenta
-Write-Host "1. Verify database connection string is configured securely" -ForegroundColor White
-Write-Host "2. Confirm Redis connection is working" -ForegroundColor White
-Write-Host "3. Test Windows Authentication with domain users" -ForegroundColor White
-Write-Host "4. Configure SSL certificate if using HTTPS" -ForegroundColor White  
-Write-Host "5. Set up monitoring and logging" -ForegroundColor White
-Write-Host "6. Configure firewall rules for external access" -ForegroundColor White
-Write-Host "7. Test API endpoints and functionality" -ForegroundColor White
-Write-Host "8. Set up automated backups" -ForegroundColor White 
+} 

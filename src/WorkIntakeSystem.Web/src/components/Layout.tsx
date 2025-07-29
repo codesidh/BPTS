@@ -34,6 +34,7 @@ import {
   Logout,
   Settings,
 } from '@mui/icons-material';
+import { useAuth } from './AuthProvider';
 
 const drawerWidth = 240;
 
@@ -67,6 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -83,6 +85,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleNavigation = (path: string) => {
     navigate(path);
     setMobileOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    handleProfileMenuClose();
   };
 
   const drawer = (
@@ -153,19 +161,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {navItems.find(item => item.path === location.pathname)?.text || 'Work Intake System'}
           </Typography>
-          <IconButton
-            size="large"
-            edge="end"
-            aria-label="account of current user"
-            aria-controls="primary-search-account-menu"
-            aria-haspopup="true"
-            onClick={handleProfileMenuOpen}
-            color="inherit"
-          >
-            <Avatar sx={{ width: 32, height: 32 }}>
-              <AccountCircle />
-            </Avatar>
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              {user?.name}
+            </Typography>
+            <IconButton
+              size="large"
+              edge="end"
+              aria-label="account of current user"
+              aria-controls="primary-search-account-menu"
+              aria-haspopup="true"
+              onClick={handleProfileMenuOpen}
+              color="inherit"
+            >
+              <Avatar sx={{ width: 32, height: 32 }}>
+                <AccountCircle />
+              </Avatar>
+            </IconButton>
+          </Box>
           <Menu
             id="primary-search-account-menu"
             anchorEl={anchorEl}
@@ -194,7 +207,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Settings
             </MenuItem>
             <Divider />
-            <MenuItem onClick={handleProfileMenuClose}>
+            <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>

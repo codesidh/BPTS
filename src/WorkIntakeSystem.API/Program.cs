@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Negotiate;
-using Microsoft.AspNetCore.Authentication.Windows;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Serilog;
 using WorkIntakeSystem.Infrastructure.Data;
 using WorkIntakeSystem.Core.Interfaces;
@@ -35,6 +35,31 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "Enterprise work intake management system API"
     });
+
+    // Add JWT authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // Database configuration
@@ -42,35 +67,25 @@ builder.Services.AddDbContext<WorkIntakeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("WorkIntakeSystem.Infrastructure")));
 
-// Windows Authentication
-var windowsAuthEnabled = builder.Configuration.GetValue<bool>("WindowsAuthentication:Enabled", true);
-if (windowsAuthEnabled)
-{
-    builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-        .AddNegotiate(options =>
-        {
-            options.ForwardDefaultSelector = context =>
-            {
-                // Use Windows authentication for API requests
-                return NegotiateDefaults.AuthenticationScheme;
-            };
-        });
-}
+// JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var jwtSecret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT secret not configured");
 
-// ADFS Authentication (hybrid scenario)
-var adfsEnabled = builder.Configuration.GetValue<bool>("ADFS:Enabled", false);
-if (adfsEnabled)
-{
-    builder.Services.AddAuthentication()
-        .AddJwtBearer("ADFS", options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            options.Authority = builder.Configuration["ADFS:Authority"];
-            options.Audience = builder.Configuration["ADFS:Audience"];
-            options.MetadataAddress = builder.Configuration["ADFS:MetadataUrl"];
-            options.RequireHttpsMetadata = true;
-            options.SaveToken = true;
-        });
-}
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"] ?? "WorkIntakeSystem",
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"] ?? "WorkIntakeSystem",
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
 
@@ -109,10 +124,11 @@ builder.Services.AddScoped<IWorkRequestRepository, WorkRequestRepository>();
 builder.Services.AddScoped<IPriorityRepository, PriorityRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
 
 // Authentication services
-builder.Services.AddScoped<IWindowsAuthenticationService, WindowsAuthenticationService>();
+builder.Services.AddScoped<IJwtAuthenticationService, JwtAuthenticationService>();
 
 // API Gateway services
 builder.Services.AddScoped<IApiGatewayService, ApiGatewayService>();

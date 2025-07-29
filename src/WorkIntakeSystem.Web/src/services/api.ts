@@ -10,15 +10,38 @@ import {
   DashboardStats,
   PriorityLevel
 } from '../types';
-import { useMsal } from '@azure/msal-react';
-import { PublicClientApplication } from '@azure/msal-browser';
+
+interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  departmentId: number;
+  businessVerticalId: number;
+}
+
+interface AuthResponse {
+  token: string;
+  expiresAt: string;
+  user: User;
+}
+
+interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
 
 class ApiService {
   private api: AxiosInstance;
-  private msalInstance?: PublicClientApplication;
+  private token: string | null = null;
 
-  constructor(msalInstance?: PublicClientApplication) {
-    this.msalInstance = msalInstance;
+  constructor() {
     this.api = axios.create({
       baseURL: '/api',
       timeout: 10000,
@@ -27,18 +50,17 @@ class ApiService {
       },
     });
 
+    // Load token from localStorage on initialization
+    this.token = localStorage.getItem('authToken');
+    if (this.token) {
+      this.setAuthToken(this.token);
+    }
+
     // Request interceptor for authentication
     this.api.interceptors.request.use(
-      async (config) => {
-        if (this.msalInstance) {
-          const accounts = this.msalInstance.getAllAccounts();
-          if (accounts.length > 0) {
-            const tokenResponse = await this.msalInstance.acquireTokenSilent({
-              account: accounts[0],
-              scopes: ['User.Read'],
-            });
-            config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
-          }
+      (config) => {
+        if (this.token) {
+          config.headers.Authorization = `Bearer ${this.token}`;
         }
         return config;
       },
@@ -51,11 +73,65 @@ class ApiService {
       (error) => {
         if (error.response?.status === 401) {
           // Handle unauthorized access
+          this.logout();
           window.location.href = '/login';
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  // Authentication methods
+  async login(credentials: LoginRequest): Promise<AuthResponse> {
+    const response = await this.api.post<AuthResponse>('/auth/login', credentials);
+    const authData = response.data;
+    this.setAuthToken(authData.token);
+    return authData;
+  }
+
+  async register(userData: RegisterRequest): Promise<AuthResponse> {
+    const response = await this.api.post<AuthResponse>('/auth/register', userData);
+    const authData = response.data;
+    this.setAuthToken(authData.token);
+    return authData;
+  }
+
+  async changePassword(passwordData: ChangePasswordRequest): Promise<void> {
+    await this.api.post('/auth/change-password', passwordData);
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    await this.api.post('/auth/reset-password', { email });
+  }
+
+  async validateToken(token: string): Promise<User> {
+    const response = await this.api.post<User>('/auth/validate-token', { token });
+    return response.data;
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const response = await this.api.get<User>('/auth/me');
+    return response.data;
+  }
+
+  setAuthToken(token: string) {
+    this.token = token;
+    localStorage.setItem('authToken', token);
+    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
+  logout() {
+    this.token = null;
+    localStorage.removeItem('authToken');
+    delete this.api.defaults.headers.common['Authorization'];
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  getApi(): AxiosInstance {
+    return this.api;
   }
 
   // Work Requests API
@@ -69,58 +145,33 @@ class ApiService {
     return response.data;
   }
 
-  async getWorkRequestsByBusinessVertical(businessVerticalId: number): Promise<WorkRequest[]> {
-    const response = await this.api.get<WorkRequest[]>(`/workrequests/business-vertical/${businessVerticalId}`);
-    return response.data;
-  }
-
-  async getWorkRequestsByDepartment(departmentId: number): Promise<WorkRequest[]> {
-    const response = await this.api.get<WorkRequest[]>(`/workrequests/department/${departmentId}`);
-    return response.data;
-  }
-
-  async getWorkRequestsByPriorityLevel(priorityLevel: PriorityLevel): Promise<WorkRequest[]> {
-    const response = await this.api.get<WorkRequest[]>(`/workrequests/priority/${priorityLevel}`);
-    return response.data;
-  }
-
-  async getPendingPriorityVotes(departmentId: number): Promise<WorkRequest[]> {
-    const response = await this.api.get<WorkRequest[]>(`/workrequests/pending-votes/${departmentId}`);
-    return response.data;
-  }
-
   async createWorkRequest(workRequest: CreateWorkRequest): Promise<WorkRequest> {
     const response = await this.api.post<WorkRequest>('/workrequests', workRequest);
     return response.data;
   }
 
-  async updateWorkRequest(id: number, workRequest: UpdateWorkRequest): Promise<void> {
-    await this.api.put(`/workrequests/${id}`, workRequest);
+  async updateWorkRequest(id: number, workRequest: UpdateWorkRequest): Promise<WorkRequest> {
+    const response = await this.api.put<WorkRequest>(`/workrequests/${id}`, workRequest);
+    return response.data;
   }
 
   async deleteWorkRequest(id: number): Promise<void> {
     await this.api.delete(`/workrequests/${id}`);
   }
 
-  async recalculatePriority(id: number): Promise<void> {
-    await this.api.post(`/workrequests/${id}/recalculate-priority`);
+  async advanceWorkflow(id: number, stage: string): Promise<WorkRequest> {
+    const response = await this.api.post<WorkRequest>(`/workrequests/${id}/advance-workflow`, { stage });
+    return response.data;
   }
 
-  async recalculateAllPriorities(): Promise<void> {
-    await this.api.post('/workrequests/recalculate-all-priorities');
+  // Priority Voting API
+  async submitPriorityVote(workRequestId: number, vote: CreatePriorityVote): Promise<void> {
+    await this.api.post(`/workrequests/${workRequestId}/priority-vote`, vote);
   }
 
-  // Priority Votes API
-  async createPriorityVote(vote: CreatePriorityVote): Promise<void> {
-    await this.api.post('/priorities', vote);
-  }
-
-  async updatePriorityVote(id: number, vote: Partial<CreatePriorityVote>): Promise<void> {
-    await this.api.put(`/priorities/${id}`, vote);
-  }
-
-  async deletePriorityVote(id: number): Promise<void> {
-    await this.api.delete(`/priorities/${id}`);
+  async getPriorityVotes(workRequestId: number): Promise<any[]> {
+    const response = await this.api.get<any[]>(`/workrequests/${workRequestId}/priority-votes`);
+    return response.data;
   }
 
   // Departments API
@@ -134,24 +185,6 @@ class ApiService {
     return response.data;
   }
 
-  async getDepartmentsByBusinessVertical(businessVerticalId: number): Promise<Department[]> {
-    const response = await this.api.get<Department[]>(`/departments/business-vertical/${businessVerticalId}`);
-    return response.data;
-  }
-
-  async createDepartment(department: Partial<Department>): Promise<Department> {
-    const response = await this.api.post<Department>('/departments', department);
-    return response.data;
-  }
-
-  async updateDepartment(id: number, department: Partial<Department>): Promise<void> {
-    await this.api.put(`/departments/${id}`, department);
-  }
-
-  async deleteDepartment(id: number): Promise<void> {
-    await this.api.delete(`/departments/${id}`);
-  }
-
   // Business Verticals API
   async getBusinessVerticals(): Promise<BusinessVertical[]> {
     const response = await this.api.get<BusinessVertical[]>('/businessverticals');
@@ -161,19 +194,6 @@ class ApiService {
   async getBusinessVertical(id: number): Promise<BusinessVertical> {
     const response = await this.api.get<BusinessVertical>(`/businessverticals/${id}`);
     return response.data;
-  }
-
-  async createBusinessVertical(businessVertical: Partial<BusinessVertical>): Promise<BusinessVertical> {
-    const response = await this.api.post<BusinessVertical>('/businessverticals', businessVertical);
-    return response.data;
-  }
-
-  async updateBusinessVertical(id: number, businessVertical: Partial<BusinessVertical>): Promise<void> {
-    await this.api.put(`/businessverticals/${id}`, businessVertical);
-  }
-
-  async deleteBusinessVertical(id: number): Promise<void> {
-    await this.api.delete(`/businessverticals/${id}`);
   }
 
   // Users API
@@ -187,36 +207,26 @@ class ApiService {
     return response.data;
   }
 
-  async getCurrentUser(): Promise<User> {
-    const response = await this.api.get<User>('/users/current');
-    return response.data;
-  }
-
   // Dashboard API
   async getDashboardStats(): Promise<DashboardStats> {
     const response = await this.api.get<DashboardStats>('/dashboard/stats');
     return response.data;
   }
 
-  async getExecutiveDashboard(): Promise<any> {
-    const response = await this.api.get('/dashboard/executive');
+  // Reports API
+  async getReports(): Promise<any[]> {
+    const response = await this.api.get<any[]>('/reports');
     return response.data;
   }
 
-  async getDepartmentDashboard(departmentId: number): Promise<any> {
-    const response = await this.api.get(`/dashboard/department/${departmentId}`);
+  async generateReport(reportType: string, filters: any): Promise<any> {
+    const response = await this.api.post<any>(`/reports/${reportType}`, filters);
     return response.data;
-  }
-
-  // Health Check
-  async healthCheck(): Promise<{ status: string }> {
-    const response = await this.api.get<{ status: string }>('/health');
-    return response.data;
-  }
-
-  public getApi() {
-    return this.api;
   }
 }
 
-export const createApiService = (msalInstance?: PublicClientApplication) => new ApiService(msalInstance);
+// Create and export a singleton instance
+export const apiService = new ApiService();
+
+// Export the class for testing purposes
+export default ApiService;
