@@ -77,11 +77,11 @@ public class MobileAccessibilityService : IMobileAccessibilityService
                     "/static/css/main.css",
                     "/manifest.json"
                 },
-                CacheStrategies = new Dictionary<string, string>
+                CacheStrategies = new List<string>
                 {
-                    { "/api/", "NetworkFirst" },
-                    { "/static/", "CacheFirst" },
-                    { "/", "StaleWhileRevalidate" }
+                    "/api/",
+                    "/static/",
+                    "/"
                 },
                 CacheMaxAge = 86400 // 24 hours
             };
@@ -256,7 +256,7 @@ public class MobileAccessibilityService : IMobileAccessibilityService
                 FontScale = 1.0,
                 ReducedMotion = false,
                 ScreenReaderEnabled = false,
-                KeyboardNavigation = "standard",
+                KeyboardNavigation = true,
                 PreferredColorSchemes = new List<string> { "light" }
             };
 
@@ -295,43 +295,15 @@ public class MobileAccessibilityService : IMobileAccessibilityService
             {
                 GeneratedAt = DateTime.UtcNow,
                 ComplianceScore = 85.5,
-                Issues = new List<AccessibilityIssue>
+                Issues = new List<string>
                 {
-                    new AccessibilityIssue
-                    {
-                        Id = "1",
-                        Severity = "Medium",
-                        Description = "Some form labels are not properly associated with inputs",
-                        Element = "form#work-request-form",
-                        WCAGCriterion = "3.3.2"
-                    },
-                    new AccessibilityIssue
-                    {
-                        Id = "2",
-                        Severity = "Low",
-                        Description = "Color contrast could be improved for secondary text",
-                        Element = ".secondary-text",
-                        WCAGCriterion = "1.4.3"
-                    }
+                    "Some form labels are not properly associated with inputs (WCAG 3.3.2)",
+                    "Color contrast could be improved for secondary text (WCAG 1.4.3)"
                 },
-                Recommendations = new List<AccessibilityRecommendation>
+                Recommendations = new List<string>
                 {
-                    new AccessibilityRecommendation
-                    {
-                        Id = "1",
-                        Title = "Improve Form Labels",
-                        Description = "Associate all form labels with their corresponding inputs using 'for' attributes",
-                        Priority = "High",
-                        EstimatedEffort = 2.0
-                    },
-                    new AccessibilityRecommendation
-                    {
-                        Id = "2",
-                        Title = "Enhance Color Contrast",
-                        Description = "Increase color contrast ratio to meet WCAG AA standards",
-                        Priority = "Medium",
-                        EstimatedEffort = 4.0
-                    }
+                    "Associate all form labels with their corresponding inputs using 'for' attributes",
+                    "Increase color contrast ratio to meet WCAG AA standards"
                 }
             };
 
@@ -356,13 +328,12 @@ public class MobileAccessibilityService : IMobileAccessibilityService
                 PushNotificationsEnabled = true,
                 OfflineSyncInterval = 300, // 5 minutes
                 BiometricAuthEnabled = true,
-                FeatureFlags = new Dictionary<string, object>
+                FeatureFlags = new Dictionary<string, bool>
                 {
                     { "EnableOfflineMode", true },
                     { "EnablePushNotifications", true },
                     { "EnableBiometricAuth", true },
-                    { "EnableVoiceCommands", false },
-                    { "MaxOfflineStorage", "50MB" }
+                    { "EnableVoiceCommands", false }
                 }
             };
 
@@ -388,7 +359,7 @@ public class MobileAccessibilityService : IMobileAccessibilityService
                     Title = "Work Request Assigned",
                     Body = "You have been assigned a new work request: System Optimization",
                     Type = "assignment",
-                    Data = new Dictionary<string, string> { { "workRequestId", "123" }, { "priority", "high" } },
+                    Data = new Dictionary<string, object> { { "workRequestId", "123" }, { "priority", "high" } },
                     ScheduledAt = DateTime.UtcNow.AddMinutes(-5),
                     IsRead = false
                 },
@@ -398,7 +369,7 @@ public class MobileAccessibilityService : IMobileAccessibilityService
                     Title = "Priority Vote Required",
                     Body = "Please vote on the priority for 'Mobile App Enhancement'",
                     Type = "priority_vote",
-                    Data = new Dictionary<string, string> { { "workRequestId", "124" }, { "deadline", "2024-01-15" } },
+                    Data = new Dictionary<string, object> { { "workRequestId", "124" }, { "deadline", "2024-01-15" } },
                     ScheduledAt = DateTime.UtcNow.AddMinutes(-10),
                     IsRead = false
                 }

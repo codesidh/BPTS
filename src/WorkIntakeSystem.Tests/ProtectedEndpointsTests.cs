@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using WorkIntakeSystem.API;
 using WorkIntakeSystem.Core.DTOs;
+using WorkIntakeSystem.API.DTOs;
 using WorkIntakeSystem.Core.Enums;
 using WorkIntakeSystem.Infrastructure.Data;
 using Xunit;
@@ -66,8 +67,8 @@ public class ProtectedEndpointsTests : IClassFixture<WebApplicationFactory<Progr
         {
             Title = "Test Request",
             Description = "Test Description",
-            Priority = PriorityLevel.Medium.ToString(),
-            Category = WorkCategory.Enhancement.ToString()
+            Priority = 5.0m,
+            Category = WorkCategory.Project
         };
         var postResponse = await _client.PostAsJsonAsync("/api/workrequests", workRequest);
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, postResponse.StatusCode);
@@ -89,8 +90,8 @@ public class ProtectedEndpointsTests : IClassFixture<WebApplicationFactory<Progr
         {
             Title = "Test Request",
             Description = "Test Description",
-            Priority = PriorityLevel.Medium.ToString(),
-            Category = WorkCategory.Enhancement.ToString()
+            Priority = 5.0m,
+            Category = WorkCategory.Project
         };
         var postResponse = await _client.PostAsJsonAsync("/api/workrequests", workRequest);
         Assert.Equal(System.Net.HttpStatusCode.Created, postResponse.StatusCode);

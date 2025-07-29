@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using WorkIntakeSystem.Core.Interfaces;
+using WorkIntakeSystem.Core.Entities;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 

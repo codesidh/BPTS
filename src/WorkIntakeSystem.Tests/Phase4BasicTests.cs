@@ -63,7 +63,7 @@ public class Phase4BasicTests
             FontScale = 1.5,
             ReducedMotion = true,
             ScreenReaderEnabled = false,
-            KeyboardNavigation = "enhanced",
+            KeyboardNavigation = true,
             PreferredColorSchemes = new List<string> { "high-contrast", "dark" }
         };
 
@@ -134,9 +134,7 @@ public class Phase4BasicTests
             EntityType = "WorkRequest",
             Fields = new List<string> { "Id", "Title", "Status", "Priority" },
             Filters = new Dictionary<string, object> { { "Status", "Active" } },
-            Format = ExportFormat.Excel,
-            StartDate = DateTime.UtcNow.AddDays(-30),
-            EndDate = DateTime.UtcNow
+            Format = ExportFormat.Excel
         };
 
         var csvRequest = new DataExportRequest
@@ -285,11 +283,11 @@ public class Phase4BasicTests
                 "/static/js/bundle.js",
                 "/static/css/main.css"
             },
-            CacheStrategies = new Dictionary<string, string>
+            CacheStrategies = new List<string>
             {
-                { "/api/", "NetworkFirst" },
-                { "/static/", "CacheFirst" },
-                { "/", "StaleWhileRevalidate" }
+                "/api/",
+                "/static/",
+                "/"
             },
             CacheMaxAge = 86400 // 24 hours
         };
@@ -297,8 +295,8 @@ public class Phase4BasicTests
         Assert.Equal("1.0.0", config.Version);
         Assert.Equal(5, config.CacheUrls.Count);
         Assert.Equal(3, config.CacheStrategies.Count);
-        Assert.Equal("NetworkFirst", config.CacheStrategies["/api/"]);
-        Assert.Equal("CacheFirst", config.CacheStrategies["/static/"]);
+        Assert.Contains("/api/", config.CacheStrategies);
+        Assert.Contains("/static/", config.CacheStrategies);
         Assert.Equal(86400, config.CacheMaxAge);
     }
 }
@@ -350,27 +348,13 @@ public class Phase4TestDataBuilder
         {
             GeneratedAt = DateTime.UtcNow,
             ComplianceScore = 87.5,
-            Issues = new List<AccessibilityIssue>
+            Issues = new List<string>
             {
-                new AccessibilityIssue
-                {
-                    Id = "issue1",
-                    Severity = "Medium",
-                    Description = "Form labels not properly associated",
-                    Element = "form#work-request-form",
-                    WCAGCriterion = "3.3.2"
-                }
+                "Form labels not properly associated"
             },
-            Recommendations = new List<AccessibilityRecommendation>
+            Recommendations = new List<string>
             {
-                new AccessibilityRecommendation
-                {
-                    Id = "rec1",
-                    Title = "Improve Form Labels",
-                    Description = "Associate all form labels with inputs",
-                    Priority = "High",
-                    EstimatedEffort = 2.0
-                }
+                "Improve Form Labels - Associate all form labels with inputs"
             }
         };
     }

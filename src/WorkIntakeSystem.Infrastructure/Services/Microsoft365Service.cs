@@ -220,7 +220,7 @@ public class Microsoft365Service : IMicrosoft365Service
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get reports from workspace {WorkspaceId}", workspaceId);
+            _logger.LogError("Failed to get reports from workspace {WorkspaceId}: {Message}", workspaceId, ex.Message);
             return new List<PowerBIReport>();
         }
     }
