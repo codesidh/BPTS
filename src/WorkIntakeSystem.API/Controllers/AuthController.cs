@@ -4,6 +4,7 @@ using WorkIntakeSystem.Core.DTOs;
 using WorkIntakeSystem.Core.Entities;
 using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Core.Enums;
+using WorkIntakeSystem.API.DTOs;
 using AutoMapper;
 using WorkIntakeSystem.Infrastructure.Services;
 
@@ -163,9 +164,4 @@ public class AuthController : ControllerBase
         var userDto = _mapper.Map<UserDto>(user);
         return Ok(userDto);
     }
-}
-
-public class ValidateTokenRequestDto
-{
-    public string Token { get; set; } = string.Empty;
 } 

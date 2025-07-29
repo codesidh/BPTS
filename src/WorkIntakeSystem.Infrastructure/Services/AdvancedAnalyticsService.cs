@@ -94,11 +94,11 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 ForecastDate = forecastDate,
                 PredictedWorkload = predictedWorkload,
                 Confidence = 0.78,
-                Factors = new List<WorkloadFactor>
+                Factors = new List<string>
                 {
-                    new WorkloadFactor { Name = "Historical Average", Weight = 0.4, Value = historicalWorkload.Average() },
-                    new WorkloadFactor { Name = "Seasonality", Weight = 0.3, Value = seasonalityFactor },
-                    new WorkloadFactor { Name = "Trend", Weight = 0.3, Value = trendFactor }
+                    "Historical Average",
+                    "Seasonality", 
+                    "Trend"
                 }
             };
 
@@ -300,7 +300,14 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 CreatedDate = DateTime.UtcNow,
                 Data = await GenerateReportDataAsync(request),
                 Charts = request.Charts,
-                Filters = request.Filters
+                Filters = request.Filters.Select(kvp => new ReportFilter
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    FieldName = kvp.Key,
+                    Operator = "=",
+                    Value = kvp.Value,
+                    DisplayName = kvp.Key
+                }).ToList()
             };
 
             _logger.LogInformation("Built custom report {ReportName}", request.ReportName);

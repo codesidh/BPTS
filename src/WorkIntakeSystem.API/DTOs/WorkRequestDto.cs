@@ -87,3 +87,8 @@ public class CreatePriorityVoteDto
     public decimal StrategicAlignment { get; set; } = 0.5m;
     public string ResourceImpactAssessment { get; set; } = string.Empty;
 }
+
+public class ValidateTokenRequestDto
+{
+    public string Token { get; set; } = string.Empty;
+}

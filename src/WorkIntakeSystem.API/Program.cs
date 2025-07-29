@@ -133,10 +133,10 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
 // API Gateway services
-builder.Services.AddScoped<IApiGatewayService, ApiGatewayService>();
-builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
-builder.Services.AddScoped<IApiVersioningService, ApiVersioningService>();
-builder.Services.AddScoped<IRequestTransformationService, RequestTransformationService>();
+builder.Services.AddSingleton<IApiGatewayService, ApiGatewayService>();
+builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
+builder.Services.AddSingleton<IApiVersioningService, ApiVersioningService>();
+builder.Services.AddSingleton<IRequestTransformationService, RequestTransformationService>();
 
 // Multi-tier caching services
 builder.Services.AddScoped<IMultiTierCachingService, MultiTierCachingService>();
