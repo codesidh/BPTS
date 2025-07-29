@@ -104,6 +104,14 @@ class ApiService {
     await this.api.post('/auth/reset-password', { email });
   }
 
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    await this.api.post('/auth/confirm-reset-password', { 
+      token, 
+      newPassword, 
+      confirmNewPassword: newPassword 
+    });
+  }
+
   async validateToken(token: string): Promise<User> {
     const response = await this.api.post<User>('/auth/validate-token', { token });
     return response.data;

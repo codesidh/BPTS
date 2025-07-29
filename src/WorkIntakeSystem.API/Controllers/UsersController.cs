@@ -88,7 +88,7 @@ namespace WorkIntakeSystem.API.Controllers
             user.Name = request.Name;
             user.DepartmentId = request.DepartmentId;
             user.BusinessVerticalId = request.BusinessVerticalId;
-            user.Role = request.Role;
+            user.Role = Enum.Parse<WorkIntakeSystem.Core.Enums.UserRole>(request.Role);
             user.Capacity = request.Capacity;
             user.SkillSet = request.SkillSet;
             user.ModifiedDate = DateTime.UtcNow;

@@ -5,6 +5,7 @@ using WorkIntakeSystem.Core.Entities;
 using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Core.Enums;
 using AutoMapper;
+using WorkIntakeSystem.Infrastructure.Services;
 
 namespace WorkIntakeSystem.API.Controllers;
 
@@ -117,6 +118,19 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Email not found" });
 
         return Ok(new { message = "Password reset email sent" });
+    }
+
+    [HttpPost("confirm-reset-password")]
+    public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetDto request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var success = await _authService.ConfirmPasswordResetAsync(request.Token, request.NewPassword);
+        if (!success)
+            return BadRequest(new { message = "Invalid or expired reset token" });
+
+        return Ok(new { message = "Password reset successfully" });
     }
 
     [HttpGet("me")]

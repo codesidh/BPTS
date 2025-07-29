@@ -60,6 +60,27 @@ Phase 4 of the Work Intake System has been successfully implemented with advance
 - **Offline-First**: Critical functions work without internet connection
 - **Performance**: Optimized loading and caching for mobile networks
 
+### 4. User Role Management
+
+#### Hierarchical Role-Based Access Control (RBAC)
+- **Six-Tier Role System**: EndUser, Lead, Manager, Director, BusinessExecutive, SystemAdministrator
+- **Permission Inheritance**: Each role inherits permissions from lower-level roles
+- **Granular Permissions**: Role-specific capabilities for work request management, user administration, and system configuration
+- **Security Enforcement**: Role-based access enforced at both API and UI levels
+
+#### Role-Specific Features
+- **EndUser (Level 1)**: Basic work request creation and tracking
+- **Lead (Level 2)**: Team management and approval capabilities
+- **Manager (Level 3)**: Department-wide resource management and approvals
+- **Director (Level 4)**: Business unit coordination and strategic planning
+- **BusinessExecutive (Level 5)**: Enterprise-wide decision making and reporting
+- **SystemAdministrator (Level 6)**: Full system access and configuration management
+
+#### JWT Integration
+- **Role Claims**: JWT tokens include role information for authorization
+- **Permission Caching**: Role permissions cached for performance optimization
+- **Audit Trail**: All role changes and permission usage logged for compliance
+
 ## 🏗️ Architecture & Implementation
 
 ### Core Models & Interfaces

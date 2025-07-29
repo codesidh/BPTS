@@ -217,6 +217,21 @@ The system uses JWT (JSON Web Tokens) for authentication:
 4. **Role-Based Access**: User roles determine access to different features
 5. **Password Security**: HMAC-SHA512 hashing with salt for secure password storage
 
+### User Roles & Permissions
+
+The system implements a hierarchical role-based access control system with the following roles:
+
+| Role | Level | Description | Key Permissions |
+|------|-------|-------------|-----------------|
+| **EndUser** | 1 | Basic system user | Create work requests, view own requests, participate in voting |
+| **Lead** | 2 | Team leader | EndUser permissions + approve team requests, manage team workload |
+| **Manager** | 3 | Department manager | Lead permissions + department-wide approvals, resource allocation |
+| **Director** | 4 | Business unit director | Manager permissions + cross-department coordination, strategic decisions |
+| **BusinessExecutive** | 5 | Executive level | Director permissions + business strategy, budget approval, executive reporting |
+| **SystemAdministrator** | 6 | System administrator | Full system access, user management, system configuration, security administration |
+
+**Role Hierarchy**: Each role inherits permissions from lower-level roles and adds role-specific capabilities.
+
 ### Database Configuration
 
 ```json

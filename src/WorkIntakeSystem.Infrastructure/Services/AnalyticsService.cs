@@ -156,10 +156,11 @@ namespace WorkIntakeSystem.Infrastructure.Services
                     {
                         bottlenecks.Add(new WorkflowBottleneck
                         {
-                            Stage = stage,
-                            AverageTimeInStage = avgTimeInStage,
-                            RequestCount = requestCount,
-                            Reason = string.Join(", ", blockers.Take(3))
+                            Stage = stage.ToString(),
+                            AverageTimeInStage = (double)avgTimeInStage,
+                            ItemsInStage = requestCount,
+                            BottleneckScore = (double)(1 - completionRate),
+                            Recommendations = blockers.Take(3).ToList()
                         });
                     }
                 }
@@ -302,9 +303,9 @@ namespace WorkIntakeSystem.Infrastructure.Services
                         .Select(g => new TrendData
                         {
                             Date = g.Key,
-                            Group = groupBy ?? "All",
+                            Category = groupBy ?? "All",
                             Value = g.Count(),
-                            Count = g.Count()
+                            Label = g.Key.ToString("MMM dd")
                         })
                         .ToListAsync();
                     break;
@@ -316,9 +317,9 @@ namespace WorkIntakeSystem.Infrastructure.Services
                         .Select(g => new TrendData
                         {
                             Date = g.Key,
-                            Group = groupBy ?? "All",
-                            Value = g.Average(wr => wr.Priority),
-                            Count = g.Count()
+                            Category = groupBy ?? "All",
+                            Value = (double)g.Average(wr => wr.Priority),
+                            Label = g.Key.ToString("MMM dd")
                         })
                         .ToListAsync();
                     break;
@@ -330,9 +331,9 @@ namespace WorkIntakeSystem.Infrastructure.Services
                         .Select(g => new TrendData
                         {
                             Date = g.Key,
-                            Group = groupBy ?? "All",
-                            Value = (decimal)g.Average(wr => (wr.ActualDate!.Value - wr.CreatedDate).TotalDays),
-                            Count = g.Count()
+                            Category = groupBy ?? "All",
+                            Value = (double)g.Average(wr => (wr.ActualDate!.Value - wr.CreatedDate).TotalDays),
+                            Label = g.Key.ToString("MMM dd")
                         })
                         .ToListAsync();
                     break;

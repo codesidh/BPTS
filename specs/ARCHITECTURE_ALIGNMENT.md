@@ -11,7 +11,7 @@ This document provides a comprehensive status overview of how the Work Intake Sy
 | **Frontend** | React.js with TypeScript, Material-UI/Ant Design | React 18 + TypeScript + Material-UI | ✅ **Complete** | Fully aligned with enterprise UI standards |
 | **Backend** | .NET Core Web API (IIS compatible) | .NET 8 Web API with IIS support | ✅ **Complete** | Latest LTS version, production-ready |
 | **Database** | SQL Server 2019/2022 with Entity Framework Core | SQL Server with EF Core 8 + Service Broker | ✅ **Complete** | Enhanced with Service Broker messaging |
-| **Authentication** | Windows Authentication + LDAP integration | Windows Auth + LDAP + ADFS hybrid support | ✅ **Complete** | Full enterprise directory integration |
+| **Authentication** | JWT Authentication with role-based access control | JWT tokens with hierarchical RBAC system | ✅ **Complete** | Six-tier role system with permission inheritance |
 | **Hosting** | IIS 10+ on Windows Server 2019/2022 | IIS deployment with web.config + PowerShell scripts | ✅ **Complete** | Production deployment automation |
 | **Web Server** | IIS with ARR for load balancing | IIS + ARR configuration in web.config | ✅ **Complete** | Web farm and load balancing ready |
 | **API Gateway** | On-premises API Management solution | Custom API Gateway with rate limiting & versioning | ✅ **Complete** | Enterprise-grade API management |
@@ -61,10 +61,31 @@ This document provides a comprehensive status overview of how the Work Intake Sy
 | **L4 - IIS Output** | Static content and page-level caching | IIS output cache with custom policies | ~1-5ms | ✅ **Complete** |
 | **Configuration Cache** | Dynamic settings with invalidation | Business vertical-specific configuration caching | ~1-5ms | ✅ **Complete** |
 
+## 🔐 Authentication & Authorization Architecture
+
+### JWT-Based Authentication
+- ✅ **JWT Token Generation**: Secure token creation with configurable expiration
+- ✅ **Token Validation**: Automatic validation on protected endpoints
+- ✅ **Password Security**: HMAC-SHA512 hashing with salt for secure storage
+- ✅ **Anonymous Authentication**: Enabled for token validation in IIS
+
+### Hierarchical Role-Based Access Control (RBAC)
+- ✅ **Six-Tier Role System**: EndUser, Lead, Manager, Director, BusinessExecutive, SystemAdministrator
+- ✅ **Permission Inheritance**: Each role inherits permissions from lower-level roles
+- ✅ **Role Claims**: JWT tokens include role information for authorization
+- ✅ **Granular Permissions**: Role-specific capabilities for work request management and system administration
+- ✅ **Audit Trail**: All role changes and permission usage logged for compliance
+
+### Security Implementation
+- ✅ **API-Level Authorization**: Role-based access enforced at controller level
+- ✅ **UI-Level Authorization**: Frontend components respect user roles
+- ✅ **Permission Caching**: Role permissions cached for performance optimization
+- ✅ **Security Headers**: XSS protection and content security policies
+
 ## 🚀 Deployment Architecture
 
 ### IIS Configuration
-- ✅ **Windows Authentication** enabled with anonymous disabled
+- ✅ **JWT Authentication** enabled with anonymous authentication for token validation
 - ✅ **Output Caching** with custom policies for different content types
 - ✅ **Compression** (gzip) for dynamic and static content
 - ✅ **Application Request Routing** for load balancing
@@ -84,7 +105,7 @@ This document provides a comprehensive status overview of how the Work Intake Sy
 1. **Frontend Technology Stack** - React + TypeScript + Material-UI
 2. **Backend Framework** - .NET 8 Web API with IIS compatibility
 3. **Database Platform** - SQL Server with Entity Framework Core
-4. **Authentication System** - Windows Authentication + LDAP integration
+4. **Authentication System** - JWT Authentication with hierarchical RBAC
 5. **Hosting Platform** - IIS 10+ on Windows Server with ARR
 6. **API Management** - Custom API Gateway with enterprise features
 7. **Caching Strategy** - Complete multi-tier implementation

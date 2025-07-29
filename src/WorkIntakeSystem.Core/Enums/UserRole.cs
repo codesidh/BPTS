@@ -4,8 +4,9 @@ public enum UserRole
 {
     EndUser = 1,
     Lead = 2,
-    DepartmentManager = 3,
-    DepartmentHead = 4,
+    Manager = 3,
+    Director = 4,
     BusinessExecutive = 5,
-    SystemAdministrator = 6
+    SystemAdministrator = 6,
+    DepartmentHead = 7
 }

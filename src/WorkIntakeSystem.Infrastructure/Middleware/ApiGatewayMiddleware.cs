@@ -45,7 +45,8 @@ public class ApiGatewayMiddleware
             }
 
             // 1. Validate API Version
-            var requestedVersion = _versioningService.GetRequestedVersion(context.Request);
+            var requestHeaders = context.Request.Headers.ToDictionary(h => h.Key, h => (object)h.Value.ToString());
+            var requestedVersion = _versioningService.GetRequestedVersion(requestHeaders);
             if (!await _apiGatewayService.ValidateApiVersion(requestedVersion, endpoint))
             {
                 await WriteErrorResponse(context, 400, "Unsupported API version", 

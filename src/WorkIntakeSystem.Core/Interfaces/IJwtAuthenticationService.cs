@@ -11,5 +11,6 @@ public interface IJwtAuthenticationService
     Task<User?> GetUserFromTokenAsync(string token);
     Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
     Task<bool> ResetPasswordAsync(string email);
+    Task<bool> ConfirmPasswordResetAsync(string token, string newPassword);
     Task<bool> IsEmailUniqueAsync(string email);
 } 

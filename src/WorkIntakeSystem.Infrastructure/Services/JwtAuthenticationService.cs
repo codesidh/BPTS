@@ -14,6 +14,7 @@ public class JwtAuthenticationService : IJwtAuthenticationService
 {
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
+    private readonly IEmailService _emailService;
     private readonly string _jwtSecret;
     private readonly string _jwtIssuer;
     private readonly string _jwtAudience;
@@ -21,10 +22,12 @@ public class JwtAuthenticationService : IJwtAuthenticationService
 
     public JwtAuthenticationService(
         IUserRepository userRepository,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IEmailService emailService)
     {
         _userRepository = userRepository;
         _configuration = configuration;
+        _emailService = emailService;
         
         var jwtConfig = configuration.GetSection("JwtSettings");
         _jwtSecret = jwtConfig["Secret"] ?? throw new InvalidOperationException("JWT secret not configured");
@@ -150,20 +153,45 @@ public class JwtAuthenticationService : IJwtAuthenticationService
         if (user == null)
             return false;
 
-        // Generate a temporary password
-        var tempPassword = GenerateTemporaryPassword();
-        var (hash, salt) = HashPassword(tempPassword);
+        // Generate a reset token
+        var resetToken = GenerateResetToken();
+        var (hash, salt) = HashPassword(resetToken);
         
+        // Store reset token hash and expiration
         user.PasswordHash = hash;
         user.PasswordSalt = salt;
         user.ModifiedDate = DateTime.UtcNow;
 
         await _userRepository.UpdateAsync(user);
 
-        // TODO: Send email with temporary password
-        // For now, just log it (in production, send email)
-        Console.WriteLine($"Temporary password for {email}: {tempPassword}");
+        // Send password reset email
+        var emailSent = await _emailService.SendPasswordResetEmailAsync(email, resetToken, user.Name);
+        
+        if (!emailSent)
+        {
+            // Log the reset token for development/testing purposes
+            Console.WriteLine($"Password reset token for {email}: {resetToken}");
+        }
 
+        return true;
+    }
+
+    public async Task<bool> ConfirmPasswordResetAsync(string token, string newPassword)
+    {
+        // Find user by reset token (stored in password hash)
+        var users = await _userRepository.GetAllAsync();
+        var user = users.FirstOrDefault(u => VerifyPassword(token, u.PasswordHash, u.PasswordSalt));
+        
+        if (user == null)
+            return false;
+
+        // Update password with new password
+        var (hash, salt) = HashPassword(newPassword);
+        user.PasswordHash = hash;
+        user.PasswordSalt = salt;
+        user.ModifiedDate = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
         return true;
     }
 
@@ -195,10 +223,10 @@ public class JwtAuthenticationService : IJwtAuthenticationService
         }
     }
 
-    private static string GenerateTemporaryPassword()
+    private static string GenerateResetToken()
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         var random = new Random();
-        return new string(Enumerable.Repeat(chars, 12).Select(s => s[random.Next(s.Length)]).ToArray());
+        return new string(Enumerable.Repeat(chars, 32).Select(s => s[random.Next(s.Length)]).ToArray());
     }
 } 
