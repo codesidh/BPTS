@@ -7,13 +7,13 @@ namespace WorkIntakeSystem.Core.Services;
 public class PriorityCalculationService : IPriorityCalculationService
 {
     private readonly IWorkRequestRepository _workRequestRepository;
-    private readonly IPriorityRepository _priorityRepository;
+    private readonly WorkIntakeSystem.Core.Interfaces.IPriorityRepository _priorityRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IConfigurationService _configurationService;
 
     public PriorityCalculationService(
         IWorkRequestRepository workRequestRepository,
-        IPriorityRepository priorityRepository,
+        WorkIntakeSystem.Core.Interfaces.IPriorityRepository priorityRepository,
         IDepartmentRepository departmentRepository,
         IConfigurationService configurationService)
     {
@@ -132,11 +132,13 @@ public interface IWorkRequestRepository
     Task<WorkRequest?> GetByIdAsync(int id);
     Task<IEnumerable<WorkRequest>> GetAllActiveAsync();
     Task UpdateAsync(WorkRequest workRequest);
-}
-
-public interface IPriorityRepository
-{
-    Task<IEnumerable<Priority>> GetByWorkRequestIdAsync(int workRequestId);
+    Task<IEnumerable<WorkRequest>> GetByBusinessVerticalAsync(int businessVerticalId);
+    Task<IEnumerable<WorkRequest>> GetByDepartmentAsync(int departmentId);
+    Task<WorkRequest> CreateAsync(WorkRequest workRequest);
+    Task DeleteAsync(int id);
+    Task<IEnumerable<WorkRequest>> GetPendingPriorityVotesAsync(int departmentId);
+    Task<IEnumerable<WorkRequest>> GetByPriorityLevelAsync(WorkIntakeSystem.Core.Enums.PriorityLevel priorityLevel);
+    Task<IEnumerable<WorkRequest>> GetByIdsAsync(IEnumerable<int> ids);
 }
 
 public interface IDepartmentRepository

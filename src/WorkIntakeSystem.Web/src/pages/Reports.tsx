@@ -62,7 +62,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { createApiService } from '../services/api';
+import { apiService } from '../services/api';
 import { useMsal } from '@azure/msal-react';
 
 interface TabPanelProps {
@@ -92,7 +92,7 @@ const Reports: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { instance } = useMsal();
-  const api = React.useMemo(() => createApiService(instance as any), [instance]);
+  // Using the singleton apiService instance
 
   const [tabValue, setTabValue] = useState(0);
   const [dateRange, setDateRange] = useState({

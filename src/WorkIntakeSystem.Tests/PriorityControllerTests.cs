@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using WorkIntakeSystem.API.Controllers;
 using WorkIntakeSystem.Core.Entities;

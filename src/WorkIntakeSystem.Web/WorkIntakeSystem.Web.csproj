@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="public\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="src\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="package.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="tsconfig.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vite.config.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="NpmInstall" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+  <Target Name="NpmBuild" AfterTargets="NpmInstall" Condition="'$(Configuration)' == 'Debug'">
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+  <Target Name="NpmBuildProduction" BeforeTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)" />
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)" />
+  </Target>
+
+</Project> 

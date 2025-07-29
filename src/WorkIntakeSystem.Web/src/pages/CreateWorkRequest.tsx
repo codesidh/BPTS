@@ -23,7 +23,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { createApiService } from '../services/api';
+import apiService from '../services/api';
 import { 
   WorkRequest, 
   type CreateWorkRequest, 
@@ -44,7 +44,7 @@ const CreateWorkRequestPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [businessVerticals, setBusinessVerticals] = useState<BusinessVertical[]>([]);
   
-  const apiService = createApiService();
+  // Using the singleton instance from the imported apiService
 
   // Form state
   const [formData, setFormData] = useState<CreateWorkRequest>({

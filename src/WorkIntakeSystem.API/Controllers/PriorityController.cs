@@ -14,7 +14,7 @@ namespace WorkIntakeSystem.API.Controllers;
 [Authorize]
 public class PriorityController : ControllerBase
 {
-    private readonly IPriorityRepository _priorityRepository;
+    private readonly WorkIntakeSystem.Core.Interfaces.IPriorityRepository _priorityRepository;
     private readonly IWorkRequestRepository _workRequestRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IPriorityCalculationService _priorityCalculationService;
@@ -22,7 +22,7 @@ public class PriorityController : ControllerBase
     private readonly ILogger<PriorityController> _logger;
 
     public PriorityController(
-        IPriorityRepository priorityRepository,
+        WorkIntakeSystem.Core.Interfaces.IPriorityRepository priorityRepository,
         IWorkRequestRepository workRequestRepository,
         IDepartmentRepository departmentRepository,
         IPriorityCalculationService priorityCalculationService,
@@ -64,7 +64,7 @@ public class PriorityController : ControllerBase
 
             // Check if department has already voted
             var existingVote = await _priorityRepository.GetByWorkRequestAndDepartmentAsync(
-                request.WorkRequestId, user.DepartmentId.Value);
+                request.WorkRequestId, user.DepartmentId);
 
             if (existingVote != null)
             {
@@ -75,7 +75,7 @@ public class PriorityController : ControllerBase
             var priority = new Priority
             {
                 WorkRequestId = request.WorkRequestId,
-                DepartmentId = user.DepartmentId.Value,
+                DepartmentId = user.DepartmentId,
                 VotedById = currentUserId,
                 Vote = request.Vote,
                 BusinessValueScore = request.BusinessValueScore,
@@ -127,7 +127,7 @@ public class PriorityController : ControllerBase
             }
 
             // Get existing vote
-            var existingVote = await _priorityRepository.GetByWorkRequestAndDepartmentAsync(workRequestId, user.DepartmentId.Value);
+            var existingVote = await _priorityRepository.GetByWorkRequestAndDepartmentAsync(workRequestId, user.DepartmentId);
             if (existingVote == null)
             {
                 return NotFound("No vote found for this work request and department");

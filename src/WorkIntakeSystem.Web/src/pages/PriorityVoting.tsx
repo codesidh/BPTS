@@ -40,7 +40,7 @@ import {
   Warning,
   Info
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import { apiService } from '../services/api';
 import { PriorityVote, WorkCategory, PriorityLevel } from '../types';
 
 interface PendingVote {
@@ -116,7 +116,7 @@ const PriorityVoting: React.FC = () => {
     try {
       setLoading(true);
       // Mock department ID - in real app, get from user context
-      const response = await api.get(`/api/priority/pending/1`);
+      const response = await apiService.getApi().get(`/api/priority/pending/1`);
       setPendingVotes(response.data);
     } catch (err) {
       setError('Failed to load pending votes');
@@ -133,7 +133,7 @@ const PriorityVoting: React.FC = () => {
       const patterns = await Promise.all(
         departments.map(async (deptId) => {
           try {
-            const response = await api.get(`/api/priority/patterns/${deptId}`);
+            const response = await apiService.getApi().get(`/api/priority/patterns/${deptId}`);
             return response.data;
           } catch {
             return null;
@@ -152,7 +152,7 @@ const PriorityVoting: React.FC = () => {
     
     // Load current voting status
     try {
-      const response = await api.get(`/api/priority/status/${workRequest.workRequestId}`);
+              const response = await apiService.getApi().get(`/api/priority/status/${workRequest.workRequestId}`);
       setVotingStatus(response.data);
     } catch (err) {
       console.error('Failed to load voting status:', err);
@@ -172,7 +172,7 @@ const PriorityVoting: React.FC = () => {
         comments
       };
 
-      await api.post('/api/priority/vote', voteData);
+              await apiService.getApi().post('/api/priority/vote', voteData);
       
       setVotingDialogOpen(false);
       setSelectedWorkRequest(null);

@@ -58,7 +58,7 @@ import {
   IntegrationInstructions,
   Api,
 } from '@mui/icons-material';
-import { createApiService } from '../services/api';
+import { apiService } from '../services/api';
 import { useMsal } from '@azure/msal-react';
 
 interface ExternalSystemStatus {
@@ -107,7 +107,7 @@ const ExternalIntegrations: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { instance } = useMsal();
-  const api = React.useMemo(() => createApiService(instance as any), [instance]);
+  // Using the singleton apiService instance
   const queryClient = useQueryClient();
 
   const [selectedSystem, setSelectedSystem] = useState<string>('');

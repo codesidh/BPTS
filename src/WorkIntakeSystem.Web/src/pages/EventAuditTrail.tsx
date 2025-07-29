@@ -36,13 +36,7 @@ import {
   Divider,
   Tooltip,
   Badge,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent
+
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
@@ -64,7 +58,7 @@ import {
   Person,
   Computer
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import { apiService } from '../services/api';
 
 interface EventStoreItem {
   id: number;
@@ -143,7 +137,7 @@ const EventAuditTrail: React.FC = () => {
       setLoading(true);
       
       // Load events
-      const eventsResponse = await api.get('/api/eventstore');
+      const eventsResponse = await apiService.getApi().get('/api/eventstore');
       setEvents(eventsResponse.data);
       
       // Load audit trails (this would need a separate endpoint)

@@ -107,4 +107,15 @@ public class WorkRequestRepository : IWorkRequestRepository
             .OrderByDescending(wr => wr.Priority)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<WorkRequest>> GetByIdsAsync(IEnumerable<int> ids)
+    {
+        return await _context.WorkRequests
+            .Include(wr => wr.BusinessVertical)
+            .Include(wr => wr.Department)
+            .Include(wr => wr.Submitter)
+            .Include(wr => wr.PriorityVotes)
+            .Where(wr => ids.Contains(wr.Id) && wr.IsActive)
+            .ToListAsync();
+    }
 }

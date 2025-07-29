@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Encodings.Web;
 using Xunit;
 using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Core.Entities;
@@ -12,6 +13,8 @@ using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 
 namespace WorkIntakeSystem.Tests;
 
@@ -673,7 +676,7 @@ public class MockMobileAccessibilityService : IMobileAccessibilityService
 // Test authentication helpers
 public class TestAuthenticationSchemeHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
+    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, FakeTimeProvider clock)
         : base(options, logger, encoder, clock) { }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -711,7 +714,7 @@ public class FakePolicyEvaluator : IPolicyEvaluator
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    public Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object resource)
+    public Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object? resource)
     {
         return Task.FromResult(PolicyAuthorizationResult.Success());
     }

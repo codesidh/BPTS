@@ -57,7 +57,7 @@ import {
   Approval,
   Security
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import apiService from '../services/api';
 
 interface SystemConfiguration {
   id: number;
