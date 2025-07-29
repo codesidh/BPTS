@@ -19,41 +19,4 @@ public interface IDevOpsIntegrationService
     // Synchronization
     Task<bool> SyncWorkRequestStatusAsync(int workRequestId);
     Task<List<IntegrationSyncResult>> GetSyncHistoryAsync(int workRequestId);
-}
-
-public class AzureDevOpsWorkItem
-{
-    public string Id { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string WorkItemType { get; set; } = string.Empty;
-    public string State { get; set; } = string.Empty;
-    public string AssignedTo { get; set; } = string.Empty;
-    public DateTime CreatedDate { get; set; }
-    public DateTime ChangedDate { get; set; }
-    public string Url { get; set; } = string.Empty;
-    public int WorkRequestId { get; set; }
-}
-
-public class JiraIssue
-{
-    public string Key { get; set; } = string.Empty;
-    public string Summary { get; set; } = string.Empty;
-    public string IssueType { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string Assignee { get; set; } = string.Empty;
-    public DateTime Created { get; set; }
-    public DateTime Updated { get; set; }
-    public string Url { get; set; } = string.Empty;
-    public int WorkRequestId { get; set; }
-}
-
-public class IntegrationSyncResult
-{
-    public string Id { get; set; } = string.Empty;
-    public int WorkRequestId { get; set; }
-    public string IntegrationType { get; set; } = string.Empty;
-    public string ExternalId { get; set; } = string.Empty;
-    public DateTime SyncTime { get; set; }
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
 } 

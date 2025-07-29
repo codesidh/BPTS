@@ -1,4 +1,5 @@
 using WorkIntakeSystem.Core.Interfaces;
+using WorkIntakeSystem.Core.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;

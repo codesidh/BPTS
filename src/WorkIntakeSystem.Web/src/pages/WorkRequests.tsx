@@ -47,7 +47,7 @@ import {
   Sort,
   Refresh
 } from '@mui/icons-material';
-import { createApiService } from '../services/api';
+import { apiService } from '../services/api';
 import { WorkRequest, WorkCategory, PriorityLevel, WorkStatus, WorkflowStage } from '../types';
 
 interface WorkRequestWithDetails extends WorkRequest {
@@ -67,7 +67,7 @@ const WorkRequests: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // Create API service instance
-  const apiService = createApiService();
+  // Using the singleton instance from the imported apiService
 
   // Filters
   const [filters, setFilters] = useState({

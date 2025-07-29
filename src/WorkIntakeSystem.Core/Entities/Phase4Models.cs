@@ -179,4 +179,234 @@ public class DataExportHistory
     public string? ErrorMessage { get; set; }
     public string ExportedBy { get; set; } = string.Empty;
     public string? DownloadUrl { get; set; }
+}
+
+// Microsoft 365 Integration Models
+public class SharePointDocument
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public long Size { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime ModifiedDate { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+}
+
+public class PowerBIReport
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string WorkspaceId { get; set; } = string.Empty;
+    public string EmbedUrl { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+}
+
+// DevOps Integration Models
+public class AzureDevOpsWorkItem
+{
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string WorkItemType { get; set; } = string.Empty;
+    public string Project { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public DateTime? ModifiedDate { get; set; }
+    public string AssignedTo { get; set; } = string.Empty;
+}
+
+public class JiraIssue
+{
+    public string Key { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string IssueType { get; set; } = string.Empty;
+    public string Project { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
+    public string Assignee { get; set; } = string.Empty;
+}
+
+public class IntegrationSyncResult
+{
+    public string Id { get; set; } = string.Empty;
+    public int WorkRequestId { get; set; }
+    public string IntegrationType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime SyncDate { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+// Analytics Models
+public class PriorityPrediction
+{
+    public int WorkRequestId { get; set; }
+    public double PredictedScore { get; set; }
+    public double Confidence { get; set; }
+    public List<string> Factors { get; set; } = new();
+}
+
+public class WorkloadPrediction
+{
+    public int DepartmentId { get; set; }
+    public double PredictedWorkload { get; set; }
+    public double Confidence { get; set; }
+    public DateTime ForecastDate { get; set; }
+}
+
+public class WorkflowBottleneck
+{
+    public string Id { get; set; } = string.Empty;
+    public string Stage { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
+    public double AverageWaitTime { get; set; }
+    public int PendingItems { get; set; }
+    public string Impact { get; set; } = string.Empty;
+}
+
+public class ResourceOptimizationSuggestion
+{
+    public int DepartmentId { get; set; }
+    public string Suggestion { get; set; } = string.Empty;
+    public double ExpectedImpact { get; set; }
+    public string Priority { get; set; } = string.Empty;
+}
+
+public class ExecutiveDashboard
+{
+    public int TotalWorkRequests { get; set; }
+    public int ActiveWorkRequests { get; set; }
+    public int CompletedWorkRequests { get; set; }
+    public double AverageCompletionTime { get; set; }
+    public double OverallEfficiency { get; set; }
+    public List<DepartmentMetrics> DepartmentMetrics { get; set; } = new();
+    public List<TrendData> Trends { get; set; } = new();
+}
+
+public class DepartmentDashboard
+{
+    public int DepartmentId { get; set; }
+    public string DepartmentName { get; set; } = string.Empty;
+    public int ActiveWorkRequests { get; set; }
+    public int CompletedWorkRequests { get; set; }
+    public double AverageCompletionTime { get; set; }
+    public double TeamUtilization { get; set; }
+    public List<UserMetrics> TeamMembers { get; set; } = new();
+    public List<WorkloadTrend> WorkloadTrends { get; set; } = new();
+}
+
+public class CustomReportRequest
+{
+    public string ReportName { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public List<string> Fields { get; set; } = new();
+    public Dictionary<string, object> Filters { get; set; } = new();
+    public List<ReportGrouping> Groupings { get; set; } = new();
+    public List<ReportChart> Charts { get; set; } = new();
+}
+
+public class DataExportRequest
+{
+    public string EntityType { get; set; } = string.Empty;
+    public List<string> Fields { get; set; } = new();
+    public Dictionary<string, object> Filters { get; set; } = new();
+    public ExportFormat Format { get; set; }
+}
+
+// Mobile and Accessibility Models
+public class PWAManifest
+{
+    public string Name { get; set; } = string.Empty;
+    public string ShortName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ThemeColor { get; set; } = string.Empty;
+    public string BackgroundColor { get; set; } = string.Empty;
+    public string Display { get; set; } = string.Empty;
+    public string StartUrl { get; set; } = string.Empty;
+    public List<PWAIcon> Icons { get; set; } = new();
+}
+
+public class PWAIcon
+{
+    public string Src { get; set; } = string.Empty;
+    public string Sizes { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+}
+
+public class ServiceWorkerConfig
+{
+    public string Version { get; set; } = string.Empty;
+    public List<string> CachedUrls { get; set; } = new();
+    public List<string> NetworkOnlyUrls { get; set; } = new();
+    public List<string> CacheFirstUrls { get; set; } = new();
+}
+
+public class OfflineResource
+{
+    public string Url { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Strategy { get; set; } = string.Empty;
+}
+
+public class OfflineWorkRequest
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public DateTime LastModifiedDate { get; set; }
+    public bool IsSynced { get; set; }
+}
+
+public class OfflineAction
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public int EntityId { get; set; }
+    public Dictionary<string, object> Data { get; set; } = new();
+    public DateTime CreatedDate { get; set; }
+    public bool IsProcessed { get; set; }
+}
+
+public class AccessibilityProfile
+{
+    public string UserId { get; set; } = string.Empty;
+    public double FontScale { get; set; } = 1.0;
+    public bool HighContrast { get; set; }
+    public bool ScreenReader { get; set; }
+    public bool ReducedMotion { get; set; }
+    public string ColorScheme { get; set; } = string.Empty;
+}
+
+public class AccessibilityReport
+{
+    public double ComplianceScore { get; set; }
+    public List<string> Issues { get; set; } = new();
+    public List<string> Recommendations { get; set; } = new();
+    public DateTime GeneratedDate { get; set; }
+}
+
+public class MobileConfiguration
+{
+    public bool PushNotificationsEnabled { get; set; }
+    public bool LocationServicesEnabled { get; set; }
+    public bool OfflineModeEnabled { get; set; }
+    public string DefaultLanguage { get; set; } = string.Empty;
+    public Dictionary<string, object> Settings { get; set; } = new();
+}
+
+public class MobileNotification
+{
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public bool IsRead { get; set; }
+    public string? ActionUrl { get; set; }
 } 
