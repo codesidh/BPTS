@@ -191,6 +191,8 @@ public class SharePointDocument
     public DateTime CreatedDate { get; set; }
     public DateTime ModifiedDate { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
+    public DateTime Modified { get; set; }
+    public string ModifiedBy { get; set; } = string.Empty;
 }
 
 public class PowerBIReport
@@ -201,6 +203,8 @@ public class PowerBIReport
     public string EmbedUrl { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
+    public DateTime LastModified { get; set; }
+    public string DatasetId { get; set; } = string.Empty;
 }
 
 // DevOps Integration Models
@@ -215,6 +219,9 @@ public class AzureDevOpsWorkItem
     public DateTime CreatedDate { get; set; }
     public DateTime? ModifiedDate { get; set; }
     public string AssignedTo { get; set; } = string.Empty;
+    public DateTime ChangedDate { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public int WorkRequestId { get; set; }
 }
 
 public class JiraIssue
@@ -228,6 +235,10 @@ public class JiraIssue
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
     public string Assignee { get; set; } = string.Empty;
+    public DateTime Created { get; set; }
+    public DateTime Updated { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public int WorkRequestId { get; set; }
 }
 
 public class IntegrationSyncResult
@@ -238,6 +249,9 @@ public class IntegrationSyncResult
     public string Status { get; set; } = string.Empty;
     public DateTime SyncDate { get; set; }
     public string? ErrorMessage { get; set; }
+    public string ExternalId { get; set; } = string.Empty;
+    public DateTime SyncTime { get; set; }
+    public bool Success { get; set; }
 }
 
 // Analytics Models
@@ -247,6 +261,8 @@ public class PriorityPrediction
     public double PredictedScore { get; set; }
     public double Confidence { get; set; }
     public List<string> Factors { get; set; } = new();
+    public List<string> InfluencingFactors { get; set; } = new();
+    public DateTime PredictionDate { get; set; }
 }
 
 public class WorkloadPrediction
@@ -255,6 +271,7 @@ public class WorkloadPrediction
     public double PredictedWorkload { get; set; }
     public double Confidence { get; set; }
     public DateTime ForecastDate { get; set; }
+    public List<string> Factors { get; set; } = new();
 }
 
 public class WorkflowBottleneck
@@ -265,6 +282,10 @@ public class WorkflowBottleneck
     public double AverageWaitTime { get; set; }
     public int PendingItems { get; set; }
     public string Impact { get; set; } = string.Empty;
+    public double AverageTimeInStage { get; set; }
+    public int ItemsInStage { get; set; }
+    public double BottleneckScore { get; set; }
+    public List<string> Recommendations { get; set; } = new();
 }
 
 public class ResourceOptimizationSuggestion
@@ -273,6 +294,9 @@ public class ResourceOptimizationSuggestion
     public string Suggestion { get; set; } = string.Empty;
     public double ExpectedImpact { get; set; }
     public string Priority { get; set; } = string.Empty;
+    public string SuggestionType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public double PotentialImpact { get; set; }
 }
 
 public class ExecutiveDashboard
@@ -284,6 +308,8 @@ public class ExecutiveDashboard
     public double OverallEfficiency { get; set; }
     public List<DepartmentMetrics> DepartmentMetrics { get; set; } = new();
     public List<TrendData> Trends { get; set; } = new();
+    public Dictionary<string, int> StatusDistribution { get; set; } = new();
+    public List<TrendData> TrendData { get; set; } = new();
 }
 
 public class DepartmentDashboard
@@ -296,6 +322,7 @@ public class DepartmentDashboard
     public double TeamUtilization { get; set; }
     public List<UserMetrics> TeamMembers { get; set; } = new();
     public List<WorkloadTrend> WorkloadTrends { get; set; } = new();
+    public List<UserMetrics> UserMetrics { get; set; } = new();
 }
 
 public class CustomReportRequest
@@ -334,6 +361,7 @@ public class PWAIcon
     public string Src { get; set; } = string.Empty;
     public string Sizes { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    public string Purpose { get; set; } = string.Empty;
 }
 
 public class ServiceWorkerConfig
@@ -342,6 +370,9 @@ public class ServiceWorkerConfig
     public List<string> CachedUrls { get; set; } = new();
     public List<string> NetworkOnlyUrls { get; set; } = new();
     public List<string> CacheFirstUrls { get; set; } = new();
+    public List<string> CacheUrls { get; set; } = new();
+    public List<string> CacheStrategies { get; set; } = new();
+    public int CacheMaxAge { get; set; }
 }
 
 public class OfflineResource
@@ -349,6 +380,8 @@ public class OfflineResource
     public string Url { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string Strategy { get; set; } = string.Empty;
+    public DateTime LastModified { get; set; }
+    public bool IsCritical { get; set; }
 }
 
 public class OfflineWorkRequest
@@ -360,6 +393,8 @@ public class OfflineWorkRequest
     public DateTime CreatedDate { get; set; }
     public DateTime LastModifiedDate { get; set; }
     public bool IsSynced { get; set; }
+    public DateTime LastSynced { get; set; }
+    public bool HasPendingChanges { get; set; }
 }
 
 public class OfflineAction
@@ -371,6 +406,10 @@ public class OfflineAction
     public Dictionary<string, object> Data { get; set; } = new();
     public DateTime CreatedDate { get; set; }
     public bool IsProcessed { get; set; }
+    public bool IsSynced { get; set; }
+    public string ActionType { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
 
 public class AccessibilityProfile
@@ -381,6 +420,9 @@ public class AccessibilityProfile
     public bool ScreenReader { get; set; }
     public bool ReducedMotion { get; set; }
     public string ColorScheme { get; set; } = string.Empty;
+    public bool ScreenReaderEnabled { get; set; }
+    public bool KeyboardNavigation { get; set; }
+    public List<string> PreferredColorSchemes { get; set; } = new();
 }
 
 public class AccessibilityReport
@@ -389,6 +431,29 @@ public class AccessibilityReport
     public List<string> Issues { get; set; } = new();
     public List<string> Recommendations { get; set; } = new();
     public DateTime GeneratedDate { get; set; }
+    public DateTime GeneratedAt { get; set; }
+}
+
+public class AccessibilityIssue
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string Element { get; set; } = string.Empty;
+    public string WCAGCriterion { get; set; } = string.Empty;
+}
+
+public class AccessibilityRecommendation
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Impact { get; set; } = string.Empty;
+    public string Implementation { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Priority { get; set; } = string.Empty;
+    public string EstimatedEffort { get; set; } = string.Empty;
 }
 
 public class MobileConfiguration
@@ -398,6 +463,9 @@ public class MobileConfiguration
     public bool OfflineModeEnabled { get; set; }
     public string DefaultLanguage { get; set; } = string.Empty;
     public Dictionary<string, object> Settings { get; set; } = new();
+    public int OfflineSyncInterval { get; set; }
+    public bool BiometricAuthEnabled { get; set; }
+    public Dictionary<string, bool> FeatureFlags { get; set; } = new();
 }
 
 public class MobileNotification
@@ -409,4 +477,7 @@ public class MobileNotification
     public DateTime CreatedDate { get; set; }
     public bool IsRead { get; set; }
     public string? ActionUrl { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public Dictionary<string, object> Data { get; set; } = new();
+    public DateTime? ScheduledAt { get; set; }
 } 

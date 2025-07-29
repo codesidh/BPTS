@@ -8,13 +8,14 @@ using System.Text.Encodings.Web;
 using Xunit;
 using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Core.Entities;
+using WorkIntakeSystem.Core.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Time.Testing;
+
 
 namespace WorkIntakeSystem.Tests;
 
@@ -229,7 +230,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
             Id = 123,
             Title = "Test Work Request",
             Description = "Test description",
-            Category = WorkCategory.Enhancement,
+            Category = WorkCategory.Project,
             DepartmentId = 1
         };
 
@@ -676,7 +677,7 @@ public class MockMobileAccessibilityService : IMobileAccessibilityService
 // Test authentication helpers
 public class TestAuthenticationSchemeHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, FakeTimeProvider clock)
+    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
         : base(options, logger, encoder, clock) { }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()

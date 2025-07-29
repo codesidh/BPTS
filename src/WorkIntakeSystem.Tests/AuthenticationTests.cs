@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using WorkIntakeSystem.API;
 using WorkIntakeSystem.Core.DTOs;
+using WorkIntakeSystem.API.DTOs;
 using WorkIntakeSystem.Core.Entities;
 using WorkIntakeSystem.Core.Enums;
 using WorkIntakeSystem.Infrastructure.Data;
