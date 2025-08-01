@@ -4,25 +4,92 @@ namespace WorkIntakeSystem.Core.Interfaces;
 
 public interface IAdvancedAnalyticsService
 {
-    // Predictive Analytics
-    Task<PriorityPrediction> PredictWorkRequestPriorityAsync(WorkRequest workRequest);
-    Task<WorkloadPrediction> PredictDepartmentWorkloadAsync(int departmentId, DateTime forecastDate);
-    Task<List<WorkflowBottleneck>> IdentifyWorkflowBottlenecksAsync();
-    Task<ResourceOptimizationSuggestion> GetResourceOptimizationSuggestionsAsync(int departmentId);
+    // Priority Prediction
+    Task<PriorityPrediction> PredictPriorityAsync(int workRequestId);
+    Task<IEnumerable<PriorityTrend>> PredictPriorityTrendsAsync(int departmentId, DateTime targetDate);
     
-    // Business Intelligence Dashboards
-    Task<ExecutiveDashboard> GetExecutiveDashboardAsync(DateTime startDate, DateTime endDate);
-    Task<DepartmentDashboard> GetDepartmentDashboardAsync(int departmentId, DateTime startDate, DateTime endDate);
-    Task<ProjectDashboard> GetProjectDashboardAsync(int projectId, DateTime startDate, DateTime endDate);
+    // Resource Forecasting
+    Task<ResourceForecast> ForecastResourceNeedsAsync(int departmentId, DateTime targetDate);
+    Task<CapacityPrediction> PredictCapacityUtilizationAsync(int departmentId, DateTime targetDate);
     
-    // Custom Report Builder
-    Task<CustomReport> BuildCustomReportAsync(CustomReportRequest request);
-    Task<List<ReportTemplate>> GetReportTemplatesAsync();
-    Task<string> SaveReportTemplateAsync(ReportTemplate template);
-    Task<byte[]> ExportReportAsync(string reportId, ExportFormat format);
+    // Completion Prediction
+    Task<CompletionPrediction> PredictCompletionTimeAsync(int workRequestId);
+    Task<IEnumerable<CompletionTrend>> PredictCompletionTrendsAsync(int departmentId, DateTime targetDate);
     
-    // Data Export
-    Task<byte[]> ExportDataAsync(DataExportRequest request);
-    Task<string> ScheduleDataExportAsync(DataExportSchedule schedule);
-    Task<List<DataExportHistory>> GetExportHistoryAsync();
+    // Business Value Analysis
+    Task<BusinessValueROI> CalculateROIAsync(int workRequestId);
+    Task<IEnumerable<BusinessValueTrend>> AnalyzeBusinessValueTrendsAsync(int businessVerticalId, DateTime fromDate, DateTime toDate);
+    
+    // Risk Assessment
+    Task<RiskAssessment> AssessProjectRiskAsync(int workRequestId);
+    Task<IEnumerable<RiskIndicator>> GetRiskIndicatorsAsync(int departmentId);
+    
+    // Predictive Insights
+    Task<IEnumerable<PredictiveInsight>> GetPredictiveInsightsAsync(int businessVerticalId);
+    Task<WorkloadPrediction> PredictWorkloadAsync(int departmentId, DateTime targetDate);
+}
+
+public class PriorityPrediction
+{
+    public int WorkRequestId { get; set; }
+    public decimal PredictedPriority { get; set; }
+    public PriorityLevel PredictedLevel { get; set; }
+    public decimal Confidence { get; set; }
+    public string Reasoning { get; set; } = string.Empty;
+    public DateTime PredictedDate { get; set; }
+}
+
+public class ResourceForecast
+{
+    public int DepartmentId { get; set; }
+    public DateTime TargetDate { get; set; }
+    public int PredictedCapacity { get; set; }
+    public int PredictedDemand { get; set; }
+    public decimal UtilizationRate { get; set; }
+    public string Recommendation { get; set; } = string.Empty;
+}
+
+public class CompletionPrediction
+{
+    public int WorkRequestId { get; set; }
+    public DateTime PredictedCompletionDate { get; set; }
+    public decimal Confidence { get; set; }
+    public string Factors { get; set; } = string.Empty;
+}
+
+public class BusinessValueROI
+{
+    public int WorkRequestId { get; set; }
+    public decimal EstimatedCost { get; set; }
+    public decimal EstimatedValue { get; set; }
+    public decimal ROI { get; set; }
+    public decimal PaybackPeriod { get; set; }
+    public string Analysis { get; set; } = string.Empty;
+}
+
+public class RiskAssessment
+{
+    public int WorkRequestId { get; set; }
+    public decimal RiskScore { get; set; }
+    public string RiskLevel { get; set; } = string.Empty;
+    public List<string> RiskFactors { get; set; } = new();
+    public string MitigationStrategy { get; set; } = string.Empty;
+}
+
+public class PredictiveInsight
+{
+    public string InsightType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Confidence { get; set; }
+    public DateTime PredictedDate { get; set; }
+    public string Recommendation { get; set; } = string.Empty;
+}
+
+public class WorkloadPrediction
+{
+    public int DepartmentId { get; set; }
+    public DateTime TargetDate { get; set; }
+    public decimal PredictedUtilization { get; set; }
+    public int PredictedWorkItems { get; set; }
+    public string Trend { get; set; } = string.Empty;
 } 
