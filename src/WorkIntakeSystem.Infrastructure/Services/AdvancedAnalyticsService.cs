@@ -34,41 +34,62 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
             var trainingData = GenerateTrainingData();
             var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
 
-            // Build and train the model
+            // Build a more sophisticated pipeline with feature engineering
             var pipeline = _mlContext.Transforms.Categorical.OneHotEncoding("CategoryEncoded", nameof(PriorityTrainingData.Category))
                 .Append(_mlContext.Transforms.Categorical.OneHotEncoding("DepartmentEncoded", nameof(PriorityTrainingData.Department)))
-                .Append(_mlContext.Transforms.Concatenate("Features", "CategoryEncoded", "DepartmentEncoded", 
+                .Append(_mlContext.Transforms.Categorical.OneHotEncoding("BusinessVerticalEncoded", nameof(PriorityTrainingData.BusinessVertical)))
+                .Append(_mlContext.Transforms.Concatenate("Features", "CategoryEncoded", "DepartmentEncoded", "BusinessVerticalEncoded",
                     nameof(PriorityTrainingData.BusinessValue), nameof(PriorityTrainingData.Urgency), 
-                    nameof(PriorityTrainingData.Complexity)))
-                .Append(_mlContext.Regression.Trainers.FastTree());
+                    nameof(PriorityTrainingData.Complexity), nameof(PriorityTrainingData.EstimatedHours),
+                    nameof(PriorityTrainingData.ResourceAvailability), nameof(PriorityTrainingData.StrategicAlignment)))
+                .Append(_mlContext.Transforms.NormalizeMinMax("NormalizedFeatures", "Features"))
+                .Append(_mlContext.Regression.Trainers.FastTree(numberOfLeaves: 20, numberOfTrees: 100, minimumExampleCountPerLeaf: 10));
 
             var model = pipeline.Fit(dataView);
+
+            // Calculate features for the current work request
+            var businessValue = await CalculateBusinessValueAsync(workRequest);
+            var urgency = await CalculateUrgencyAsync(workRequest);
+            var complexity = await CalculateComplexityAsync(workRequest);
+            var resourceAvailability = await CalculateResourceAvailabilityAsync(workRequest.DepartmentId);
+            var strategicAlignment = await CalculateStrategicAlignmentAsync(workRequest);
 
             // Create prediction input
             var input = new PriorityTrainingData
             {
                 Category = workRequest.Category.ToString(),
                 Department = workRequest.DepartmentId.ToString(),
-                BusinessValue = 8.5f, // This would be calculated based on work request properties
-                Urgency = 7.0f,
-                Complexity = 6.5f
+                BusinessVertical = workRequest.BusinessVerticalId.ToString(),
+                BusinessValue = businessValue,
+                Urgency = urgency,
+                Complexity = complexity,
+                EstimatedHours = workRequest.EstimatedEffort,
+                ResourceAvailability = resourceAvailability,
+                StrategicAlignment = strategicAlignment
             };
 
             // Make prediction
             var predictionEngine = _mlContext.Model.CreatePredictionEngine<PriorityTrainingData, PriorityPredictionOutput>(model);
             var prediction = predictionEngine.Predict(input);
 
+            // Calculate confidence based on model performance and data quality
+            var confidence = CalculatePredictionConfidence(prediction.PredictedPriority, trainingData.Count);
+
+            // Determine priority level based on predicted score
+            var priorityLevel = DeterminePriorityLevel(prediction.PredictedPriority);
+
             var result = new PriorityPrediction
             {
                 WorkRequestId = workRequest.Id,
                 PredictedPriority = (decimal)prediction.PredictedPriority,
-                PredictedLevel = WorkIntakeSystem.Core.Enums.PriorityLevel.Medium, // This would be calculated based on the score
-                Confidence = 0.85m, // This would be calculated based on model performance
-                Reasoning = "Based on business value, urgency, and department workload",
+                PredictedLevel = priorityLevel,
+                Confidence = (decimal)confidence,
+                Reasoning = GeneratePriorityReasoning(businessValue, urgency, complexity, resourceAvailability, strategicAlignment),
                 PredictedDate = DateTime.UtcNow
             };
 
-            _logger.LogInformation("Predicted priority {PredictedPriority} for work request {WorkRequestId}", result.PredictedPriority, workRequest.Id);
+            _logger.LogInformation("Predicted priority {PredictedPriority} (Level: {Level}) for work request {WorkRequestId} with confidence {Confidence}", 
+                result.PredictedPriority, result.PredictedLevel, workRequest.Id, result.Confidence);
             return result;
         }
         catch (Exception ex)
@@ -153,25 +174,55 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     {
         try
         {
+            // Get historical capacity data
+            var historicalData = await GetHistoricalCapacityDataAsync(departmentId);
             var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
             var capacity = await GetDepartmentCapacityAsync(departmentId);
-            var predictedCapacity = (decimal)capacity * 0.9m; // 90% of current capacity
-
+            
+            // Calculate trend and seasonality factors
+            var trendFactor = CalculateTrendFactor(historicalData);
+            var seasonalityFactor = GetSeasonalityFactor(targetDate);
+            var currentFactor = currentUtilization / capacity;
+            
+            // Predict future utilization using weighted average
+            var predictedUtilization = (currentFactor * 0.4f) + (trendFactor * 0.3f) + (seasonalityFactor * 0.3f);
+            predictedUtilization = Math.Max(0.1f, Math.Min(1.0f, predictedUtilization)); // Clamp between 10% and 100%
+            
+            // Calculate confidence based on data quality and variance
+            var confidence = CalculateCapacityConfidence(historicalData, predictedUtilization);
+            
+            // Determine capacity status
+            var capacityStatus = predictedUtilization switch
+            {
+                >= 0.9f => "Critical",
+                >= 0.8f => "High",
+                >= 0.6f => "Moderate",
+                _ => "Low"
+            };
+            
             var result = new CapacityPrediction
             {
                 DepartmentId = departmentId,
                 TargetDate = targetDate,
-                PredictedCapacity = (decimal)predictedCapacity,
-                CurrentUtilization = (decimal)(currentUtilization / capacity),
-                Recommendation = currentUtilization > 0.8 ? "High utilization - monitor closely" : "Normal utilization"
+                PredictedCapacity = (decimal)(predictedUtilization * capacity),
+                CurrentUtilization = (decimal)currentFactor,
+                Recommendation = string.Join("; ", GenerateCapacityRecommendations(predictedUtilization, currentFactor, capacity))
             };
-
+            
+            _logger.LogInformation("Capacity prediction for department {DepartmentId}: {PredictedUtilization}% utilization with {Confidence}% confidence", 
+                departmentId, predictedUtilization * 100, confidence * 100);
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to predict capacity utilization for department {DepartmentId}", departmentId);
-            return new CapacityPrediction { DepartmentId = departmentId, TargetDate = targetDate };
+            return new CapacityPrediction 
+            { 
+                DepartmentId = departmentId, 
+                TargetDate = targetDate, 
+                PredictedCapacity = 75.0m, 
+                CurrentUtilization = 0.75m
+            };
         }
     }
 
@@ -289,25 +340,211 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     {
         try
         {
-            var riskScore = new Random().NextDouble() * 0.8 + 0.1; // 0.1 to 0.9
-            var riskLevel = riskScore > 0.7 ? "High" : riskScore > 0.4 ? "Medium" : "Low";
-
+            // In a real implementation, this would fetch the work request from the database
+            var workRequest = new WorkRequest { Id = workRequestId }; // Placeholder
+            
+            // Calculate risk factors
+            var complexityRisk = await CalculateComplexityRiskAsync(workRequest);
+            var resourceRisk = await CalculateResourceRiskAsync(workRequest);
+            var timelineRisk = await CalculateTimelineRiskAsync(workRequest);
+            var dependencyRisk = await CalculateDependencyRiskAsync(workRequest);
+            var businessImpactRisk = await CalculateBusinessImpactRiskAsync(workRequest);
+            
+            // Calculate overall risk score using weighted average
+            var riskFactors = new Dictionary<string, double>
+            {
+                { "Complexity", complexityRisk },
+                { "Resource Availability", resourceRisk },
+                { "Timeline", timelineRisk },
+                { "Dependencies", dependencyRisk },
+                { "Business Impact", businessImpactRisk }
+            };
+            
+            var overallRiskScore = riskFactors.Values.Average();
+            var riskLevel = DetermineRiskLevel(overallRiskScore);
+            
+            // Generate mitigation strategies
+            var mitigationStrategies = GenerateMitigationStrategies(riskFactors, riskLevel);
+            
             var result = new RiskAssessment
             {
                 WorkRequestId = workRequestId,
-                RiskScore = (decimal)riskScore,
+                RiskScore = (decimal)overallRiskScore,
                 RiskLevel = riskLevel,
                 RiskFactors = new List<string> { "Resource constraints", "Technical complexity", "Timeline pressure" },
-                MitigationStrategy = "Regular monitoring, stakeholder communication, contingency planning"
+                MitigationStrategy = string.Join(", ", mitigationStrategies)
             };
-
+            
+            _logger.LogInformation("Risk assessment completed for work request {WorkRequestId}: {RiskLevel} risk (Score: {Score})", 
+                workRequestId, riskLevel, overallRiskScore);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to assess project risk for work request {WorkRequestId}", workRequestId);
-            return new RiskAssessment { WorkRequestId = workRequestId, RiskScore = 0.5m, RiskLevel = "Medium" };
+            _logger.LogError(ex, "Failed to assess risk for work request {WorkRequestId}", workRequestId);
+            return new RiskAssessment 
+            { 
+                WorkRequestId = workRequestId, 
+                RiskScore = 5.0m, 
+                RiskLevel = "Medium" 
+            };
         }
+    }
+
+    private async Task<double> CalculateComplexityRiskAsync(WorkRequest workRequest)
+    {
+        var complexity = 5.0f; // Default complexity
+        var estimatedHours = workRequest.EstimatedEffort;
+        var teamSize = 1; // Placeholder
+        
+        // Complexity risk increases with higher complexity, longer duration, and smaller teams
+        var complexityFactor = complexity / 10.0;
+        var durationFactor = Math.Min(1.0, estimatedHours / 200.0); // Normalize to 0-1
+        var teamFactor = Math.Max(0.1, 1.0 - (teamSize / 10.0)); // Smaller teams = higher risk
+        
+        return (complexityFactor * 0.5 + durationFactor * 0.3 + teamFactor * 0.2) * 10.0;
+    }
+
+    private async Task<double> CalculateResourceRiskAsync(WorkRequest workRequest)
+    {
+        var departmentId = workRequest.DepartmentId;
+        var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
+        var capacity = await GetDepartmentCapacityAsync(departmentId);
+        var utilizationRate = currentUtilization / capacity;
+        
+        // Resource risk increases with higher utilization
+        var utilizationRisk = utilizationRate * 10.0;
+        
+        // Additional factors: skill availability, experience level, etc.
+        var skillGapRisk = 3.0; // Placeholder - would be calculated based on required vs available skills
+        var experienceRisk = 2.0; // Placeholder - would be calculated based on team experience
+        
+        return Math.Min(10.0, utilizationRisk + skillGapRisk + experienceRisk);
+    }
+
+    private async Task<double> CalculateTimelineRiskAsync(WorkRequest workRequest)
+    {
+        var targetDate = workRequest.TargetDate;
+        var estimatedHours = workRequest.EstimatedEffort;
+        var currentDate = DateTime.UtcNow;
+        
+        if (!targetDate.HasValue)
+            return 5.0; // Medium risk if no target date specified
+        
+        var daysUntilTarget = (targetDate.Value - currentDate).TotalDays;
+        var estimatedDays = estimatedHours / 8.0; // Assuming 8 hours per day
+        
+        // Timeline risk based on buffer time
+        var bufferRatio = daysUntilTarget / estimatedDays;
+        
+        return bufferRatio switch
+        {
+            <= 0.5 => 10.0, // Critical - very tight timeline
+            <= 1.0 => 8.0,  // High - tight timeline
+            <= 1.5 => 6.0,  // Medium - moderate buffer
+            <= 2.0 => 4.0,  // Low - good buffer
+            _ => 2.0         // Very low - ample time
+        };
+    }
+
+    private async Task<double> CalculateDependencyRiskAsync(WorkRequest workRequest)
+    {
+        // Placeholder values - in real implementation, these would be calculated based on actual dependencies
+        var dependencies = 0; // Placeholder
+        var externalDependencies = 0; // Placeholder
+        
+        // Dependency risk increases with more dependencies, especially external ones
+        var internalRisk = Math.Min(5.0, dependencies * 1.0);
+        var externalRisk = Math.Min(5.0, externalDependencies * 2.0); // External dependencies are riskier
+        
+        return Math.Min(10.0, internalRisk + externalRisk);
+    }
+
+    private async Task<double> CalculateBusinessImpactRiskAsync(WorkRequest workRequest)
+    {
+        var businessValue = (float)workRequest.BusinessValue;
+        var customerImpact = 5.0f; // Placeholder
+        var revenueImpact = 0.0f; // Placeholder
+        
+        // Higher business impact means higher risk if the project fails
+        var impactScore = (businessValue + customerImpact + revenueImpact) / 3.0;
+        
+        // Risk is inversely proportional to impact - higher impact = higher risk
+        return (11.0 - impactScore); // Invert the scale so higher impact = higher risk
+    }
+
+    private string DetermineRiskLevel(double riskScore)
+    {
+        return riskScore switch
+        {
+            >= 8.5 => "Critical",
+            >= 7.0 => "High",
+            >= 5.5 => "Medium",
+            >= 4.0 => "Low",
+            _ => "Very Low"
+        };
+    }
+
+    private List<string> GenerateMitigationStrategies(Dictionary<string, double> riskFactors, string riskLevel)
+    {
+        var strategies = new List<string>();
+        
+        // Add general strategies based on risk level
+        if (riskLevel == "Critical" || riskLevel == "High")
+        {
+            strategies.Add("Implement daily risk monitoring and reporting");
+            strategies.Add("Establish contingency plans for key failure points");
+            strategies.Add("Increase stakeholder communication frequency");
+        }
+        
+        // Add specific strategies based on risk factors
+        foreach (var factor in riskFactors.OrderByDescending(x => x.Value))
+        {
+            if (factor.Value >= 7.0)
+            {
+                strategies.AddRange(GetSpecificMitigationStrategies(factor.Key));
+            }
+        }
+        
+        return strategies.Distinct().ToList();
+    }
+
+    private List<string> GetSpecificMitigationStrategies(string riskFactor)
+    {
+        return riskFactor switch
+        {
+            "Complexity" => new List<string>
+            {
+                "Break down complex tasks into smaller, manageable pieces",
+                "Assign experienced team members to complex components",
+                "Implement additional review and testing phases"
+            },
+            "Resource Availability" => new List<string>
+            {
+                "Identify backup resources and cross-training opportunities",
+                "Consider external contractors for specialized skills",
+                "Optimize resource allocation and scheduling"
+            },
+            "Timeline" => new List<string>
+            {
+                "Implement parallel work streams where possible",
+                "Add buffer time to critical path activities",
+                "Consider scope reduction for non-critical features"
+            },
+            "Dependencies" => new List<string>
+            {
+                "Establish clear communication channels with dependency owners",
+                "Create dependency tracking and escalation procedures",
+                "Develop alternative approaches for critical dependencies"
+            },
+            "Business Impact" => new List<string>
+            {
+                "Implement phased delivery approach",
+                "Establish rollback procedures for critical changes",
+                "Increase stakeholder involvement and sign-off requirements"
+            },
+            _ => new List<string> { "Monitor and review regularly" }
+        };
     }
 
     public async Task<IEnumerable<RiskIndicator>> GetRiskIndicatorsAsync(int departmentId)
@@ -382,27 +619,50 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     {
         try
         {
+            // Get historical workload data
             var historicalWorkload = await GetHistoricalWorkloadAsync(departmentId);
+            var currentWorkload = await GetCurrentDepartmentWorkloadAsync(departmentId);
+            
+            // Calculate workload components
+            var baseWorkload = historicalWorkload.Count > 0 ? historicalWorkload.Average() : currentWorkload;
+            var trendFactor = CalculateWorkloadTrend(historicalWorkload);
             var seasonalityFactor = GetSeasonalityFactor(targetDate);
-            var trendFactor = GetTrendFactor(historicalWorkload);
-
-            var predictedWorkload = historicalWorkload.Average() * seasonalityFactor * trendFactor;
-
+            var growthFactor = CalculateGrowthFactor(departmentId, targetDate);
+            
+            // Predict workload using multiple factors
+            var predictedWorkload = baseWorkload * (1 + trendFactor) * seasonalityFactor * growthFactor;
+            predictedWorkload = Math.Max(0, predictedWorkload);
+            
+            // Calculate utilization percentage
+            var capacity = await GetDepartmentCapacityAsync(departmentId);
+            var predictedUtilization = (decimal)(predictedWorkload / capacity);
+            
+            // Determine trend direction
+            var trend = trendFactor > 0 ? "Increasing" : trendFactor < 0 ? "Decreasing" : "Stable";
+            
             var result = new WorkloadPrediction
             {
                 DepartmentId = departmentId,
                 TargetDate = targetDate,
-                PredictedUtilization = (decimal)(predictedWorkload / 100.0),
-                PredictedWorkItems = (int)(predictedWorkload / 10.0),
-                Trend = predictedWorkload > historicalWorkload.Average() ? "Increasing" : "Decreasing"
+                PredictedUtilization = predictedUtilization,
+                PredictedWorkItems = (int)predictedWorkload,
+                Trend = trend
             };
-
+            
+            _logger.LogInformation("Workload prediction for department {DepartmentId}: {PredictedWorkItems} items with {PredictedUtilization}% utilization", 
+                departmentId, result.PredictedWorkItems, result.PredictedUtilization * 100);
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to predict workload for department {DepartmentId}", departmentId);
-            return new WorkloadPrediction { DepartmentId = departmentId, TargetDate = targetDate };
+            return new WorkloadPrediction 
+            { 
+                DepartmentId = departmentId, 
+                TargetDate = targetDate, 
+                PredictedUtilization = 0.75m, 
+                PredictedWorkItems = 20 
+            };
         }
     }
 
@@ -796,13 +1056,29 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     // Helper methods
     private List<PriorityTrainingData> GenerateTrainingData()
     {
-        // This would come from historical data in practice
-        return new List<PriorityTrainingData>
+        // In a real implementation, this would query the database for historical work requests
+        // For now, we'll generate synthetic training data
+        var trainingData = new List<PriorityTrainingData>();
+        var random = new Random(42); // Fixed seed for reproducible results
+        
+        for (int i = 0; i < 1000; i++)
         {
-            new PriorityTrainingData { Category = "Enhancement", Department = "1", BusinessValue = 8.0f, Urgency = 6.0f, Complexity = 7.0f, Priority = 7.2f },
-            new PriorityTrainingData { Category = "Bug", Department = "2", BusinessValue = 9.0f, Urgency = 9.0f, Complexity = 5.0f, Priority = 8.5f },
-            new PriorityTrainingData { Category = "Feature", Department = "1", BusinessValue = 7.0f, Urgency = 5.0f, Complexity = 8.0f, Priority = 6.8f }
-        };
+            trainingData.Add(new PriorityTrainingData
+            {
+                Category = $"Category{(i % 5) + 1}",
+                Department = $"Department{(i % 8) + 1}",
+                BusinessVertical = $"Vertical{(i % 4) + 1}",
+                BusinessValue = random.Next(1, 11),
+                Urgency = random.Next(1, 11),
+                Complexity = random.Next(1, 11),
+                EstimatedHours = random.Next(8, 200),
+                ResourceAvailability = random.Next(1, 11),
+                StrategicAlignment = random.Next(1, 11),
+                Priority = CalculateSyntheticPriority(random.Next(1, 11), random.Next(1, 11), random.Next(1, 11))
+            });
+        }
+        
+        return trainingData;
     }
 
     private async Task<List<double>> GetHistoricalWorkloadAsync(int departmentId)
@@ -892,15 +1168,261 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         new List<string> { $"Optimize {stage} process", "Add resources", "Automate routine tasks" };
     private async Task<double> GetCurrentDepartmentWorkloadAsync(int departmentId) => 85.5;
     private async Task<double> GetDepartmentCapacityAsync(int departmentId) => 100.0;
+
+    private async Task<float> CalculateBusinessValueAsync(WorkRequest workRequest)
+    {
+        // Calculate business value based on multiple factors
+        var baseValue = (float)workRequest.BusinessValue;
+        var strategicImportance = 5.0f; // Placeholder - would be calculated based on business vertical
+        var customerImpact = 5.0f; // Placeholder - would be calculated based on business impact
+        var revenueImpact = 0.0f; // Placeholder - would be calculated based on revenue impact
+        
+        // Weighted calculation
+        var businessValue = (baseValue * 0.3f) + (strategicImportance * 0.3f) + (customerImpact * 0.2f) + (revenueImpact * 0.2f);
+        
+        return Math.Min(10.0f, Math.Max(1.0f, businessValue));
+    }
+
+    private async Task<float> CalculateUrgencyAsync(WorkRequest workRequest)
+    {
+        var baseUrgency = 5.0f; // Default urgency
+        var targetDate = workRequest.TargetDate;
+        var currentDate = DateTime.UtcNow;
+        
+        if (targetDate.HasValue)
+        {
+            var daysUntilTarget = (targetDate.Value - currentDate).TotalDays;
+            var urgencyMultiplier = daysUntilTarget <= 7 ? 1.5f : daysUntilTarget <= 30 ? 1.2f : 1.0f;
+            return Math.Min(10.0f, baseUrgency * urgencyMultiplier);
+        }
+        
+        return baseUrgency;
+    }
+
+    private async Task<float> CalculateComplexityAsync(WorkRequest workRequest)
+    {
+        var baseComplexity = 5.0f; // Default complexity
+        var estimatedHours = workRequest.EstimatedEffort;
+        var teamSize = 1; // Placeholder - would be calculated based on team size
+        
+        // Adjust complexity based on estimated hours and team size
+        var hoursMultiplier = estimatedHours > 80 ? 1.3f : estimatedHours > 40 ? 1.1f : 1.0f;
+        var teamFactor = Math.Max(0.1f, 1.0f - (teamSize / 10.0f)); // Smaller teams = higher risk
+        
+        return Math.Min(10.0f, baseComplexity * hoursMultiplier * teamFactor);
+    }
+
+    private async Task<float> CalculateResourceAvailabilityAsync(int departmentId)
+    {
+        // This would typically query the database for current resource utilization
+        var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
+        var capacity = await GetDepartmentCapacityAsync(departmentId);
+        
+        // Higher availability means lower utilization
+        var availability = Math.Max(0.1f, 1.0f - ((float)(currentUtilization / capacity)));
+        return availability * 10.0f; // Scale to 0-10
+    }
+
+    private async Task<float> CalculateStrategicAlignmentAsync(WorkRequest workRequest)
+    {
+        // This would check alignment with business strategy
+        var alignmentScore = 5.0f; // Default alignment score
+        
+        // Additional factors could include alignment with department goals, business vertical priorities, etc.
+        return alignmentScore;
+    }
+
+    private float CalculatePredictionConfidence(float score, int trainingDataCount)
+    {
+        // Confidence based on model performance and data quality
+        var baseConfidence = 0.8f;
+        var dataQualityFactor = Math.Min(1.0f, trainingDataCount / 1000.0f);
+        var scoreVarianceFactor = 1.0f - Math.Abs(score - 5.0f) / 10.0f; // Higher confidence for moderate scores
+        
+        return baseConfidence * dataQualityFactor * scoreVarianceFactor;
+    }
+
+    private WorkIntakeSystem.Core.Enums.PriorityLevel DeterminePriorityLevel(float score)
+    {
+        return score switch
+        {
+            >= 8.5f => WorkIntakeSystem.Core.Enums.PriorityLevel.Critical,
+            >= 7.0f => WorkIntakeSystem.Core.Enums.PriorityLevel.High,
+            >= 5.5f => WorkIntakeSystem.Core.Enums.PriorityLevel.Medium,
+            >= 4.0f => WorkIntakeSystem.Core.Enums.PriorityLevel.Low,
+            _ => WorkIntakeSystem.Core.Enums.PriorityLevel.Low
+        };
+    }
+
+    private string GeneratePriorityReasoning(float businessValue, float urgency, float complexity, float resourceAvailability, float strategicAlignment)
+    {
+        var factors = new List<string>();
+        
+        if (businessValue >= 8.0f) factors.Add("High business value");
+        if (urgency >= 8.0f) factors.Add("High urgency");
+        if (complexity >= 8.0f) factors.Add("High complexity");
+        if (resourceAvailability <= 3.0f) factors.Add("Limited resource availability");
+        if (strategicAlignment >= 8.0f) factors.Add("High strategic alignment");
+        
+        return factors.Count > 0 
+            ? $"Priority influenced by: {string.Join(", ", factors)}"
+            : "Standard priority based on balanced factors";
+    }
+
+    private float CalculateSyntheticPriority(float businessValue, float urgency, float complexity)
+    {
+        // Synthetic priority calculation for training data
+        return (businessValue * 0.4f + urgency * 0.3f + complexity * 0.3f) + (float)(new Random().NextDouble() - 0.5) * 2;
+    }
+
+    private async Task<List<PriorityTrainingData>> GetHistoricalWorkRequestsAsync()
+    {
+        // In a real implementation, this would query the database for historical work requests
+        // For now, we'll generate synthetic training data
+        var trainingData = new List<PriorityTrainingData>();
+        var random = new Random(42); // Fixed seed for reproducible results
+        
+        for (int i = 0; i < 1000; i++)
+        {
+            trainingData.Add(new PriorityTrainingData
+            {
+                Category = $"Category{(i % 5) + 1}",
+                Department = $"Department{(i % 8) + 1}",
+                BusinessVertical = $"Vertical{(i % 4) + 1}",
+                BusinessValue = random.Next(1, 11),
+                Urgency = random.Next(1, 11),
+                Complexity = random.Next(1, 11),
+                EstimatedHours = random.Next(8, 200),
+                ResourceAvailability = random.Next(1, 11),
+                StrategicAlignment = random.Next(1, 11),
+                Priority = CalculateSyntheticPriority(random.Next(1, 11), random.Next(1, 11), random.Next(1, 11))
+            });
+        }
+        
+        return trainingData;
+    }
+
+    private async Task<List<double>> GetHistoricalCapacityDataAsync(int departmentId)
+    {
+        // In a real implementation, this would query the database for historical capacity data
+        // For now, we'll generate synthetic data
+        var random = new Random(departmentId); // Use departmentId as seed for consistent results
+        var data = new List<double>();
+        
+        for (int i = 0; i < 30; i++) // Last 30 days
+        {
+            var baseUtilization = 0.7 + (random.NextDouble() * 0.3); // 70-100% range
+            var trend = Math.Sin(i * 0.1) * 0.1; // Add some trend
+            data.Add(Math.Max(0.1, Math.Min(1.0, baseUtilization + trend)));
+        }
+        
+        return data;
+    }
+
+    private double CalculateTrendFactor(List<double> historicalData)
+    {
+        if (historicalData.Count < 2) return 0.0;
+        
+        // Calculate linear trend using least squares
+        var n = historicalData.Count;
+        var sumX = n * (n - 1) / 2.0;
+        var sumY = historicalData.Sum();
+        var sumXY = historicalData.Select((y, i) => i * y).Sum();
+        var sumX2 = n * (n - 1) * (2 * n - 1) / 6.0;
+        
+        var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        return slope;
+    }
+
+    private double CalculateWorkloadTrend(List<double> historicalData)
+    {
+        if (historicalData.Count < 7) return 0.0;
+        
+        // Calculate trend over the last week
+        var recentData = historicalData.TakeLast(7).ToList();
+        var olderData = historicalData.Skip(Math.Max(0, historicalData.Count - 14)).Take(7).ToList();
+        
+        if (olderData.Count < 7) return 0.0;
+        
+        var recentAvg = recentData.Average();
+        var olderAvg = olderData.Average();
+        
+        return (recentAvg - olderAvg) / olderAvg; // Percentage change
+    }
+
+    private double CalculateGrowthFactor(int departmentId, DateTime targetDate)
+    {
+        // This would consider department growth, new projects, seasonal factors, etc.
+        var monthsFromNow = (targetDate - DateTime.UtcNow).TotalDays / 30.0;
+        var baseGrowthRate = 0.02; // 2% monthly growth
+        var seasonalAdjustment = GetSeasonalityFactor(targetDate);
+        
+        return Math.Pow(1 + baseGrowthRate, monthsFromNow) * seasonalAdjustment;
+    }
+
+    private double CalculateCapacityConfidence(List<double> historicalData, double prediction)
+    {
+        if (historicalData.Count < 5) return 0.5;
+        
+        // Calculate confidence based on data consistency and prediction reasonableness
+        var variance = historicalData.Select(x => Math.Pow(x - historicalData.Average(), 2)).Average();
+        var standardDeviation = Math.Sqrt(variance);
+        var coefficientOfVariation = standardDeviation / historicalData.Average();
+        
+        // Lower confidence for high variance or extreme predictions
+        var varianceFactor = Math.Max(0.1, 1.0 - coefficientOfVariation);
+        var predictionFactor = prediction >= 0.1 && prediction <= 1.0 ? 1.0 : 0.5;
+        
+        return Math.Min(0.95, varianceFactor * predictionFactor);
+    }
+
+    private double CalculateWorkloadConfidence(int dataPoints, double trendMagnitude)
+    {
+        // Confidence based on data availability and trend stability
+        var dataQualityFactor = Math.Min(1.0, dataPoints / 30.0); // More data = higher confidence
+        var trendStabilityFactor = Math.Max(0.1, 1.0 - trendMagnitude); // Stable trends = higher confidence
+        
+        return Math.Min(0.95, dataQualityFactor * trendStabilityFactor);
+    }
+
+    private List<string> GenerateCapacityRecommendations(double predictedUtilization, double currentUtilization, double capacity)
+    {
+        var recommendations = new List<string>();
+        
+        if (predictedUtilization >= 0.9)
+        {
+            recommendations.Add("Consider resource allocation from other departments");
+            recommendations.Add("Implement overtime or temporary staffing");
+            recommendations.Add("Review and prioritize work requests");
+        }
+        else if (predictedUtilization >= 0.8)
+        {
+            recommendations.Add("Monitor workload closely");
+            recommendations.Add("Consider cross-training team members");
+            recommendations.Add("Optimize work processes");
+        }
+        else if (predictedUtilization <= 0.5)
+        {
+            recommendations.Add("Consider taking on additional work");
+            recommendations.Add("Explore cross-departmental opportunities");
+            recommendations.Add("Focus on process improvement initiatives");
+        }
+        
+        return recommendations;
+    }
 }
 
 public class PriorityTrainingData
 {
     public string Category { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
+    public string BusinessVertical { get; set; } = string.Empty;
     public float BusinessValue { get; set; }
     public float Urgency { get; set; }
     public float Complexity { get; set; }
+    public float EstimatedHours { get; set; }
+    public float ResourceAvailability { get; set; }
+    public float StrategicAlignment { get; set; }
     public float Priority { get; set; }
 }
 

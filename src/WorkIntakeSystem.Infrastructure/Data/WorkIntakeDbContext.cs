@@ -108,6 +108,23 @@ public class WorkIntakeDbContext : DbContext
             entity.Property(e => e.TimeDecayFactor).HasColumnType("decimal(3,2)").HasDefaultValue(1.0m);
             entity.Property(e => e.CapacityAdjustment).HasColumnType("decimal(3,2)").HasDefaultValue(1.0m);
             
+            // Performance indexes for common queries
+            entity.HasIndex(e => e.Status).HasDatabaseName("IX_WorkRequests_Status");
+            entity.HasIndex(e => e.Category).HasDatabaseName("IX_WorkRequests_Category");
+            entity.HasIndex(e => e.Priority).HasDatabaseName("IX_WorkRequests_Priority");
+            entity.HasIndex(e => e.SubmitterId).HasDatabaseName("IX_WorkRequests_SubmitterId");
+            entity.HasIndex(e => e.DepartmentId).HasDatabaseName("IX_WorkRequests_DepartmentId");
+            entity.HasIndex(e => e.BusinessVerticalId).HasDatabaseName("IX_WorkRequests_BusinessVerticalId");
+            entity.HasIndex(e => e.CapabilityId).HasDatabaseName("IX_WorkRequests_CapabilityId");
+            entity.HasIndex(e => e.CreatedDate).HasDatabaseName("IX_WorkRequests_CreatedDate");
+            entity.HasIndex(e => e.ModifiedDate).HasDatabaseName("IX_WorkRequests_ModifiedDate");
+            
+            // Composite indexes for analytics and reporting
+            entity.HasIndex(e => new { e.Status, e.Category, e.Priority }).HasDatabaseName("IX_WorkRequests_StatusCategoryPriority");
+            entity.HasIndex(e => new { e.DepartmentId, e.Status, e.CreatedDate }).HasDatabaseName("IX_WorkRequests_DepartmentStatusCreated");
+            entity.HasIndex(e => new { e.BusinessVerticalId, e.Status, e.Priority }).HasDatabaseName("IX_WorkRequests_VerticalStatusPriority");
+            entity.HasIndex(e => new { e.SubmitterId, e.Status, e.CreatedDate }).HasDatabaseName("IX_WorkRequests_SubmitterStatusCreated");
+            
             entity.HasOne(wr => wr.BusinessVertical)
                   .WithMany(bv => bv.WorkRequests)
                   .HasForeignKey(wr => wr.BusinessVerticalId)
@@ -141,6 +158,17 @@ public class WorkIntakeDbContext : DbContext
             
             // Composite unique constraint - one vote per department per work request
             entity.HasIndex(e => new { e.WorkRequestId, e.DepartmentId }).IsUnique();
+            
+            // Performance indexes for analytics
+            entity.HasIndex(e => e.WorkRequestId).HasDatabaseName("IX_Priorities_WorkRequestId");
+            entity.HasIndex(e => e.DepartmentId).HasDatabaseName("IX_Priorities_DepartmentId");
+            entity.HasIndex(e => e.VotedById).HasDatabaseName("IX_Priorities_VotedById");
+            entity.HasIndex(e => e.VotedDate).HasDatabaseName("IX_Priorities_VotedDate");
+            entity.HasIndex(e => e.Weight).HasDatabaseName("IX_Priorities_Weight");
+            
+            // Composite indexes for priority analysis
+            entity.HasIndex(e => new { e.WorkRequestId, e.Weight }).HasDatabaseName("IX_Priorities_WorkRequestWeight");
+            entity.HasIndex(e => new { e.DepartmentId, e.VotedDate }).HasDatabaseName("IX_Priorities_DepartmentVotedDate");
             
             entity.HasOne(p => p.WorkRequest)
                   .WithMany(wr => wr.PriorityVotes)
@@ -237,6 +265,17 @@ public class WorkIntakeDbContext : DbContext
             entity.Property(e => e.Action).IsRequired().HasMaxLength(100);
             entity.Property(e => e.SecurityContext).HasDefaultValue("{}");
             
+            // Performance indexes for audit trail queries
+            entity.HasIndex(e => e.WorkRequestId).HasDatabaseName("IX_AuditTrails_WorkRequestId");
+            entity.HasIndex(e => e.ChangedById).HasDatabaseName("IX_AuditTrails_ChangedById");
+            entity.HasIndex(e => e.Action).HasDatabaseName("IX_AuditTrails_Action");
+            entity.HasIndex(e => e.ChangedDate).HasDatabaseName("IX_AuditTrails_ChangedDate");
+            
+            // Composite indexes for audit analysis
+            entity.HasIndex(e => new { e.WorkRequestId, e.ChangedDate }).HasDatabaseName("IX_AuditTrails_WorkRequestChangedDate");
+            entity.HasIndex(e => new { e.ChangedById, e.ChangedDate }).HasDatabaseName("IX_AuditTrails_ChangedByChangedDate");
+            entity.HasIndex(e => new { e.Action, e.ChangedDate }).HasDatabaseName("IX_AuditTrails_ActionChangedDate");
+            
             entity.HasOne(at => at.WorkRequest)
                   .WithMany(wr => wr.AuditTrails)
                   .HasForeignKey(at => at.WorkRequestId)
@@ -285,6 +324,19 @@ public class WorkIntakeDbContext : DbContext
             entity.Property(e => e.ImplementedDate);
             entity.Property(e => e.RollbackDate);
             entity.Property(e => e.ImplementationNotes);
+
+            // Performance indexes for change request management
+            entity.HasIndex(e => e.ConfigurationId).HasDatabaseName("IX_ConfigurationChangeRequests_ConfigurationId");
+            entity.HasIndex(e => e.RequestedById).HasDatabaseName("IX_ConfigurationChangeRequests_RequestedById");
+            entity.HasIndex(e => e.Status).HasDatabaseName("IX_ConfigurationChangeRequests_Status");
+            entity.HasIndex(e => e.RequestedDate).HasDatabaseName("IX_ConfigurationChangeRequests_RequestedDate");
+            entity.HasIndex(e => e.ApprovedDate).HasDatabaseName("IX_ConfigurationChangeRequests_ApprovedDate");
+            entity.HasIndex(e => e.ImplementedDate).HasDatabaseName("IX_ConfigurationChangeRequests_ImplementedDate");
+            
+            // Composite indexes for workflow and reporting
+            entity.HasIndex(e => new { e.Status, e.RequestedDate }).HasDatabaseName("IX_ConfigurationChangeRequests_StatusRequestedDate");
+            entity.HasIndex(e => new { e.ConfigurationId, e.Status }).HasDatabaseName("IX_ConfigurationChangeRequests_ConfigurationStatus");
+            entity.HasIndex(e => new { e.RequestedById, e.Status }).HasDatabaseName("IX_ConfigurationChangeRequests_RequestedByStatus");
 
             entity.HasOne(ccr => ccr.Configuration)
                   .WithMany()
