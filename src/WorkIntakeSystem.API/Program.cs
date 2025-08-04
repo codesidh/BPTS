@@ -174,6 +174,10 @@ builder.Services.AddScoped<IProjectManagementIntegration, ProjectManagementInteg
 builder.Services.AddScoped<ICalendarIntegration, CalendarIntegration>();
 builder.Services.AddScoped<INotificationIntegration, NotificationIntegration>();
 
+// Register configuration and category services
+builder.Services.AddScoped<IConfigurationChangeService, ConfigurationChangeService>();
+builder.Services.AddScoped<IWorkCategoryConfigurationService, WorkCategoryConfigurationService>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 

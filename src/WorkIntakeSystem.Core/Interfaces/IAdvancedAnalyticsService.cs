@@ -1,4 +1,5 @@
 using WorkIntakeSystem.Core.Entities;
+using WorkIntakeSystem.Core.Enums;
 
 namespace WorkIntakeSystem.Core.Interfaces;
 
@@ -92,4 +93,51 @@ public class WorkloadPrediction
     public decimal PredictedUtilization { get; set; }
     public int PredictedWorkItems { get; set; }
     public string Trend { get; set; } = string.Empty;
+}
+
+public class CapacityPrediction
+{
+    public int DepartmentId { get; set; }
+    public DateTime TargetDate { get; set; }
+    public decimal PredictedCapacity { get; set; }
+    public decimal CurrentUtilization { get; set; }
+    public string Recommendation { get; set; } = string.Empty;
+}
+
+public class PriorityTrend
+{
+    public int DepartmentId { get; set; }
+    public DateTime Date { get; set; }
+    public decimal AveragePriority { get; set; }
+    public int WorkRequestCount { get; set; }
+    public string Trend { get; set; } = string.Empty;
+}
+
+public class CompletionTrend
+{
+    public int DepartmentId { get; set; }
+    public DateTime Date { get; set; }
+    public decimal AverageCompletionTime { get; set; }
+    public int CompletedWorkItems { get; set; }
+    public string Trend { get; set; } = string.Empty;
+}
+
+public class BusinessValueTrend
+{
+    public int BusinessVerticalId { get; set; }
+    public DateTime Date { get; set; }
+    public decimal AverageBusinessValue { get; set; }
+    public decimal TotalROI { get; set; }
+    public int WorkRequestCount { get; set; }
+    public string Trend { get; set; } = string.Empty;
+}
+
+public class RiskIndicator
+{
+    public int DepartmentId { get; set; }
+    public string RiskType { get; set; } = string.Empty;
+    public decimal RiskScore { get; set; }
+    public string RiskLevel { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string MitigationAction { get; set; } = string.Empty;
 } 

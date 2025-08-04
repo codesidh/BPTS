@@ -84,12 +84,7 @@ namespace WorkIntakeSystem.Core.Interfaces
 
     // WorkflowBottleneck moved to IAdvancedAnalyticsService.cs
 
-    public class PriorityTrend
-    {
-        public DateTime Date { get; set; }
-        public decimal AveragePriority { get; set; }
-        public int RequestCount { get; set; }
-    }
+
 
     public class ResourceAllocation
     {

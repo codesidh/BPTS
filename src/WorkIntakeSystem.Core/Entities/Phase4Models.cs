@@ -255,24 +255,6 @@ public class IntegrationSyncResult
 }
 
 // Analytics Models
-public class PriorityPrediction
-{
-    public int WorkRequestId { get; set; }
-    public double PredictedScore { get; set; }
-    public double Confidence { get; set; }
-    public List<string> Factors { get; set; } = new();
-    public List<string> InfluencingFactors { get; set; } = new();
-    public DateTime PredictionDate { get; set; }
-}
-
-public class WorkloadPrediction
-{
-    public int DepartmentId { get; set; }
-    public double PredictedWorkload { get; set; }
-    public double Confidence { get; set; }
-    public DateTime ForecastDate { get; set; }
-    public List<string> Factors { get; set; } = new();
-}
 
 public class WorkflowBottleneck
 {

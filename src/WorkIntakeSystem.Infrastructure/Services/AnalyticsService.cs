@@ -450,7 +450,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 {
                     Date = g.Key,
                     AveragePriority = g.Average(wr => wr.Priority),
-                    RequestCount = g.Count()
+                    WorkRequestCount = g.Count()
                 })
                 .OrderBy(pt => pt.Date)
                 .ToListAsync();

@@ -20,6 +20,8 @@ public class WorkIntakeDbContext : DbContext
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<EventStore> EventStore { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
+    public DbSet<WorkCategoryConfiguration> WorkCategoryConfigurations { get; set; }
+    public DbSet<ConfigurationChangeRequest> ConfigurationChangeRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +38,8 @@ public class WorkIntakeDbContext : DbContext
         ConfigureSystemConfiguration(modelBuilder);
         ConfigureEventStore(modelBuilder);
         ConfigureAuditTrail(modelBuilder);
+        ConfigureWorkCategoryConfiguration(modelBuilder);
+        ConfigureConfigurationChangeRequest(modelBuilder);
         
         // Seed initial data
         SeedInitialData(modelBuilder);
@@ -241,6 +245,60 @@ public class WorkIntakeDbContext : DbContext
             entity.HasOne(at => at.ChangedBy)
                   .WithMany(u => u.AuditTrails)
                   .HasForeignKey(at => at.ChangedById)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureWorkCategoryConfiguration(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WorkCategoryConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CategoryName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.RequiredFields).HasDefaultValue("{}");
+            entity.Property(e => e.ApprovalMatrix).HasDefaultValue("{}");
+            entity.Property(e => e.ValidationRules).HasDefaultValue("{}");
+            entity.Property(e => e.NotificationTemplates).HasDefaultValue("{}");
+            entity.Property(e => e.CustomFields).HasDefaultValue("{}");
+            
+            entity.HasOne(wcc => wcc.BusinessVertical)
+                  .WithMany()
+                  .HasForeignKey(wcc => wcc.BusinessVerticalId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureConfigurationChangeRequest(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ConfigurationChangeRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ConfigurationId).IsRequired();
+            entity.Property(e => e.RequestedValue).IsRequired();
+            entity.Property(e => e.ChangeReason).IsRequired();
+            entity.Property(e => e.RequestedById).IsRequired();
+            entity.Property(e => e.RequestedDate).IsRequired();
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ApprovedDate);
+            entity.Property(e => e.RejectedReason);
+            entity.Property(e => e.ImplementedDate);
+            entity.Property(e => e.RollbackDate);
+            entity.Property(e => e.ImplementationNotes);
+
+            entity.HasOne(ccr => ccr.Configuration)
+                  .WithMany()
+                  .HasForeignKey(ccr => ccr.ConfigurationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(ccr => ccr.RequestedBy)
+                  .WithMany()
+                  .HasForeignKey(ccr => ccr.RequestedById)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(ccr => ccr.ApprovedBy)
+                  .WithMany()
+                  .HasForeignKey(ccr => ccr.ApprovedById)
                   .OnDelete(DeleteBehavior.Restrict);
         });
     }
