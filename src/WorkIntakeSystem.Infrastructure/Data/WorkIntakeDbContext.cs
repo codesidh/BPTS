@@ -22,6 +22,8 @@ public class WorkIntakeDbContext : DbContext
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<WorkCategoryConfiguration> WorkCategoryConfigurations { get; set; }
     public DbSet<ConfigurationChangeRequest> ConfigurationChangeRequests { get; set; }
+    public DbSet<WorkflowStageConfiguration> WorkflowStages { get; set; }
+    public DbSet<WorkflowTransition> WorkflowTransitions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,8 @@ public class WorkIntakeDbContext : DbContext
         ConfigureAuditTrail(modelBuilder);
         ConfigureWorkCategoryConfiguration(modelBuilder);
         ConfigureConfigurationChangeRequest(modelBuilder);
+        ConfigureWorkflowStageConfiguration(modelBuilder);
+        ConfigureWorkflowTransition(modelBuilder);
         
         // Seed initial data
         SeedInitialData(modelBuilder);
@@ -351,6 +355,49 @@ public class WorkIntakeDbContext : DbContext
             entity.HasOne(ccr => ccr.ApprovedBy)
                   .WithMany()
                   .HasForeignKey(ccr => ccr.ApprovedById)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureWorkflowStageConfiguration(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WorkflowStageConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Order).IsRequired();
+            entity.Property(e => e.Description).IsRequired();
+
+            entity.HasIndex(e => new { e.BusinessVerticalId, e.Order }).HasDatabaseName("IX_WorkflowStages_VerticalOrder");
+
+            entity.HasOne(ws => ws.BusinessVertical)
+                  .WithMany()
+                  .HasForeignKey(ws => ws.BusinessVerticalId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureWorkflowTransition(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WorkflowTransition>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TransitionName).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => new { e.FromStageId, e.ToStageId, e.BusinessVerticalId }).IsUnique();
+
+            entity.HasOne(t => t.FromStage)
+                  .WithMany(ws => ws.FromTransitions)
+                  .HasForeignKey(t => t.FromStageId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.ToStage)
+                  .WithMany(ws => ws.ToTransitions)
+                  .HasForeignKey(t => t.ToStageId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.BusinessVertical)
+                  .WithMany()
+                  .HasForeignKey(t => t.BusinessVerticalId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
     }

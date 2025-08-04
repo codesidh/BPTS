@@ -43,6 +43,9 @@ public class AuditTrail
     
     public string SecurityContext { get; set; } = "{}"; // JSON field for security information
     
+    [Column(TypeName = "nvarchar(max)")]
+    public string Metadata { get; set; } = "{}"; // Additional data such as SLA tracking etc.
+    
     // Navigation properties
     [ForeignKey("WorkRequestId")]
     public virtual WorkRequest WorkRequest { get; set; } = null!;
