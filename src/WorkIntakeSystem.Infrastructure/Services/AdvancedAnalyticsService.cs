@@ -2,10 +2,10 @@ using Microsoft.ML;
 using Microsoft.ML.Data;
 using WorkIntakeSystem.Core.Interfaces;
 using WorkIntakeSystem.Core.Entities;
+using WorkIntakeSystem.Core.Enums;
 using Microsoft.Extensions.Logging;
-using OfficeOpenXml;
-using CsvHelper;
-using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using WorkIntakeSystem.Infrastructure.Data;
 using System.Text.Json;
 
 namespace WorkIntakeSystem.Infrastructure.Services;
@@ -15,102 +15,74 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     private readonly MLContext _mlContext;
     private readonly ILogger<AdvancedAnalyticsService> _logger;
     private readonly IAnalyticsService _analyticsService;
+    private readonly WorkIntakeDbContext _context;
+    private readonly IPriorityCalculationService _priorityCalculationService;
 
     public AdvancedAnalyticsService(
         ILogger<AdvancedAnalyticsService> logger,
-        IAnalyticsService analyticsService)
+        IAnalyticsService analyticsService,
+        WorkIntakeDbContext context,
+        IPriorityCalculationService priorityCalculationService)
     {
         _mlContext = new MLContext(seed: 0);
         _logger = logger;
         _analyticsService = analyticsService;
+        _context = context;
+        _priorityCalculationService = priorityCalculationService;
     }
 
-    // Predictive Analytics
-    public async Task<PriorityPrediction> PredictWorkRequestPriorityAsync(WorkRequest workRequest)
-    {
-        try
-        {
-            // Create training data (in practice, this would come from historical data)
-            var trainingData = GenerateTrainingData();
-            var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
-
-            // Build a more sophisticated pipeline with feature engineering
-            var pipeline = _mlContext.Transforms.Categorical.OneHotEncoding("CategoryEncoded", nameof(PriorityTrainingData.Category))
-                .Append(_mlContext.Transforms.Categorical.OneHotEncoding("DepartmentEncoded", nameof(PriorityTrainingData.Department)))
-                .Append(_mlContext.Transforms.Categorical.OneHotEncoding("BusinessVerticalEncoded", nameof(PriorityTrainingData.BusinessVertical)))
-                .Append(_mlContext.Transforms.Concatenate("Features", "CategoryEncoded", "DepartmentEncoded", "BusinessVerticalEncoded",
-                    nameof(PriorityTrainingData.BusinessValue), nameof(PriorityTrainingData.Urgency), 
-                    nameof(PriorityTrainingData.Complexity), nameof(PriorityTrainingData.EstimatedHours),
-                    nameof(PriorityTrainingData.ResourceAvailability), nameof(PriorityTrainingData.StrategicAlignment)))
-                .Append(_mlContext.Transforms.NormalizeMinMax("NormalizedFeatures", "Features"))
-                .Append(_mlContext.Regression.Trainers.FastTree(numberOfLeaves: 20, numberOfTrees: 100, minimumExampleCountPerLeaf: 10));
-
-            var model = pipeline.Fit(dataView);
-
-            // Calculate features for the current work request
-            var businessValue = await CalculateBusinessValueAsync(workRequest);
-            var urgency = await CalculateUrgencyAsync(workRequest);
-            var complexity = await CalculateComplexityAsync(workRequest);
-            var resourceAvailability = await CalculateResourceAvailabilityAsync(workRequest.DepartmentId);
-            var strategicAlignment = await CalculateStrategicAlignmentAsync(workRequest);
-
-            // Create prediction input
-            var input = new PriorityTrainingData
-            {
-                Category = workRequest.Category.ToString(),
-                Department = workRequest.DepartmentId.ToString(),
-                BusinessVertical = workRequest.BusinessVerticalId.ToString(),
-                BusinessValue = businessValue,
-                Urgency = urgency,
-                Complexity = complexity,
-                EstimatedHours = workRequest.EstimatedEffort,
-                ResourceAvailability = resourceAvailability,
-                StrategicAlignment = strategicAlignment
-            };
-
-            // Make prediction
-            var predictionEngine = _mlContext.Model.CreatePredictionEngine<PriorityTrainingData, PriorityPredictionOutput>(model);
-            var prediction = predictionEngine.Predict(input);
-
-            // Calculate confidence based on model performance and data quality
-            var confidence = CalculatePredictionConfidence(prediction.PredictedPriority, trainingData.Count);
-
-            // Determine priority level based on predicted score
-            var priorityLevel = DeterminePriorityLevel(prediction.PredictedPriority);
-
-            var result = new PriorityPrediction
-            {
-                WorkRequestId = workRequest.Id,
-                PredictedPriority = (decimal)prediction.PredictedPriority,
-                PredictedLevel = priorityLevel,
-                Confidence = (decimal)confidence,
-                Reasoning = GeneratePriorityReasoning(businessValue, urgency, complexity, resourceAvailability, strategicAlignment),
-                PredictedDate = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("Predicted priority {PredictedPriority} (Level: {Level}) for work request {WorkRequestId} with confidence {Confidence}", 
-                result.PredictedPriority, result.PredictedLevel, workRequest.Id, result.Confidence);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to predict priority for work request {WorkRequestId}", workRequest.Id);
-            return new PriorityPrediction { WorkRequestId = workRequest.Id, PredictedPriority = 5.0m, Confidence = 0.0m };
-        }
-    }
-
+    // Priority Prediction
     public async Task<PriorityPrediction> PredictPriorityAsync(int workRequestId)
     {
         try
         {
-            // This would fetch the work request and predict priority
-            var workRequest = new WorkRequest { Id = workRequestId }; // In practice, fetch from repository
-            return await PredictWorkRequestPriorityAsync(workRequest);
+            var workRequest = await _context.WorkRequests
+                .Include(wr => wr.PriorityVotes)
+                .Include(wr => wr.Department)
+                .Include(wr => wr.BusinessVertical)
+                .FirstOrDefaultAsync(wr => wr.Id == workRequestId);
+
+            if (workRequest == null)
+                throw new InvalidOperationException($"Work request {workRequestId} not found");
+
+            // Calculate base priority using existing service
+            var basePriority = await _priorityCalculationService.CalculatePriorityScoreAsync(workRequest);
+
+            // Apply ML-based adjustments
+            var mlAdjustment = await CalculateMLPriorityAdjustmentAsync(workRequest);
+            var finalPriority = Math.Min(1.0m, Math.Max(0.0m, basePriority + mlAdjustment));
+
+            // Determine confidence based on data quality
+            var confidence = CalculatePredictionConfidence(workRequest);
+
+            // Generate reasoning
+            var reasoning = GeneratePriorityReasoning(workRequest, basePriority, mlAdjustment, confidence);
+
+            var prediction = new PriorityPrediction
+            {
+                WorkRequestId = workRequestId,
+                PredictedPriority = finalPriority,
+                PredictedLevel = finalPriority switch
+                {
+                    >= 0.8m => PriorityLevel.Critical,
+                    >= 0.6m => PriorityLevel.High,
+                    >= 0.4m => PriorityLevel.Medium,
+                    _ => PriorityLevel.Low
+                },
+                Confidence = confidence,
+                Reasoning = reasoning,
+                PredictedDate = DateTime.UtcNow
+            };
+
+            _logger.LogInformation("Priority prediction completed for work request {WorkRequestId}: {Priority} (Confidence: {Confidence})", 
+                workRequestId, prediction.PredictedLevel, confidence);
+
+            return prediction;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict priority for work request {WorkRequestId}", workRequestId);
-            return new PriorityPrediction { WorkRequestId = workRequestId, PredictedPriority = 5.0m, Confidence = 0.0m };
+            _logger.LogError(ex, "Error predicting priority for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 
@@ -120,17 +92,34 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         {
             var trends = new List<PriorityTrend>();
             var currentDate = DateTime.UtcNow;
-            
-            for (int i = 0; i < 30; i++)
+            var daysToPredict = (targetDate - currentDate).Days;
+
+            // Get historical priority data for the department
+            var historicalData = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId && wr.CreatedDate >= currentDate.AddDays(-90))
+                .Select(wr => new { wr.CreatedDate, wr.Priority })
+                .ToListAsync();
+
+            if (!historicalData.Any())
+                return trends;
+
+            // Calculate trend using linear regression
+            var trendSlope = CalculateTrendSlope(historicalData.Select(h => new { Date = h.CreatedDate, Value = (double)h.Priority }));
+
+            // Predict future trends
+            for (int i = 1; i <= Math.Min(daysToPredict, 30); i++)
             {
-                var date = currentDate.AddDays(i);
+                var predictionDate = currentDate.AddDays(i);
+                var predictedPriority = CalculateTrendPrediction(historicalData, trendSlope, predictionDate);
+                var workRequestCount = await PredictWorkRequestCountAsync(departmentId, predictionDate);
+
                 trends.Add(new PriorityTrend
                 {
                     DepartmentId = departmentId,
-                    Date = date,
-                    AveragePriority = 0.6m + (decimal)(Math.Sin(i * 0.1) * 0.2),
-                    WorkRequestCount = new Random().Next(5, 25),
-                    Trend = i % 7 == 0 ? "Weekly Pattern" : "Daily Fluctuation"
+                    Date = predictionDate,
+                    AveragePriority = (decimal)predictedPriority,
+                    WorkRequestCount = workRequestCount,
+                    Trend = trendSlope > 0.01 ? "Increasing" : trendSlope < -0.01 ? "Decreasing" : "Stable"
                 });
             }
 
@@ -138,35 +127,64 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict priority trends for department {DepartmentId}", departmentId);
-            return Enumerable.Empty<PriorityTrend>();
+            _logger.LogError(ex, "Error predicting priority trends for department {DepartmentId}", departmentId);
+            return new List<PriorityTrend>();
         }
     }
 
+    // Resource Forecasting
     public async Task<ResourceForecast> ForecastResourceNeedsAsync(int departmentId, DateTime targetDate)
     {
         try
         {
-            var currentWorkload = await GetCurrentDepartmentWorkloadAsync(departmentId);
-            var capacity = await GetDepartmentCapacityAsync(departmentId);
-            var predictedDemand = currentWorkload * 1.1; // 10% growth assumption
+            var department = await _context.Departments
+                .Include(d => d.Users)
+                .FirstOrDefaultAsync(d => d.Id == departmentId);
 
-            var result = new ResourceForecast
+            if (department == null)
+                throw new InvalidOperationException($"Department {departmentId} not found");
+
+            // Calculate current capacity
+            var currentCapacity = department.Users.Count * 8 * 5; // 8 hours/day, 5 days/week
+            var currentUtilization = department.CurrentUtilization;
+
+            // Predict demand based on historical data
+            var historicalDemand = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId && wr.CreatedDate >= targetDate.AddDays(-90))
+                .GroupBy(wr => wr.CreatedDate.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var averageDailyDemand = historicalDemand.Any() ? historicalDemand.Average(h => h.Count) : 5;
+            var predictedDemand = (int)(averageDailyDemand * 8); // Convert to hours
+
+            // Calculate utilization rate
+            var utilizationRate = predictedDemand > 0 ? (decimal)predictedDemand / currentCapacity : 0;
+
+            // Generate recommendation
+            var recommendation = utilizationRate switch
+            {
+                > 1.2m => "Critical: Immediate resource allocation needed",
+                > 1.0m => "High: Consider adding resources or redistributing workload",
+                > 0.8m => "Moderate: Monitor closely, may need additional resources",
+                > 0.6m => "Good: Current capacity is adequate",
+                _ => "Low: Consider optimizing resource allocation"
+            };
+
+            return new ResourceForecast
             {
                 DepartmentId = departmentId,
                 TargetDate = targetDate,
-                PredictedCapacity = (int)capacity,
-                PredictedDemand = (int)predictedDemand,
-                UtilizationRate = (decimal)(predictedDemand / capacity),
-                Recommendation = predictedDemand > capacity ? "Consider adding resources" : "Current capacity sufficient"
+                PredictedCapacity = currentCapacity,
+                PredictedDemand = predictedDemand,
+                UtilizationRate = utilizationRate,
+                Recommendation = recommendation
             };
-
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to forecast resource needs for department {DepartmentId}", departmentId);
-            return new ResourceForecast { DepartmentId = departmentId, TargetDate = targetDate };
+            _logger.LogError(ex, "Error forecasting resource needs for department {DepartmentId}", departmentId);
+            throw;
         }
     }
 
@@ -174,79 +192,100 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     {
         try
         {
-            // Get historical capacity data
-            var historicalData = await GetHistoricalCapacityDataAsync(departmentId);
-            var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
-            var capacity = await GetDepartmentCapacityAsync(departmentId);
-            
-            // Calculate trend and seasonality factors
-            var trendFactor = CalculateTrendFactor(historicalData);
-            var seasonalityFactor = GetSeasonalityFactor(targetDate);
-            var currentFactor = currentUtilization / capacity;
-            
-            // Predict future utilization using weighted average
-            var predictedUtilization = (currentFactor * 0.4f) + (trendFactor * 0.3f) + (seasonalityFactor * 0.3f);
-            predictedUtilization = Math.Max(0.1f, Math.Min(1.0f, predictedUtilization)); // Clamp between 10% and 100%
-            
-            // Calculate confidence based on data quality and variance
-            var confidence = CalculateCapacityConfidence(historicalData, predictedUtilization);
-            
-            // Determine capacity status
-            var capacityStatus = predictedUtilization switch
+            var department = await _context.Departments
+                .Include(d => d.Users)
+                .FirstOrDefaultAsync(d => d.Id == departmentId);
+
+            if (department == null)
+                throw new InvalidOperationException($"Department {departmentId} not found");
+
+            // Get current utilization
+            var currentUtilization = department.CurrentUtilization;
+
+            // Predict future utilization using historical trends
+            var historicalUtilization = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId && wr.CreatedDate >= targetDate.AddDays(-60))
+                .GroupBy(wr => wr.CreatedDate.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var trendSlope = CalculateTrendSlope(historicalUtilization.Select(h => new { Date = h.Date, Value = (double)h.Count }));
+            var predictedUtilization = Math.Min(100.0m, Math.Max(0.0m, currentUtilization + (decimal)(trendSlope * 30)));
+
+            var recommendation = predictedUtilization switch
             {
-                >= 0.9f => "Critical",
-                >= 0.8f => "High",
-                >= 0.6f => "Moderate",
-                _ => "Low"
+                > 90m => "Critical: Immediate capacity expansion required",
+                > 80m => "High: Plan for capacity increase",
+                > 70m => "Moderate: Monitor capacity trends",
+                > 50m => "Good: Current capacity is sufficient",
+                _ => "Low: Consider capacity optimization"
             };
-            
-            var result = new CapacityPrediction
+
+            return new CapacityPrediction
             {
                 DepartmentId = departmentId,
                 TargetDate = targetDate,
-                PredictedCapacity = (decimal)(predictedUtilization * capacity),
-                CurrentUtilization = (decimal)currentFactor,
-                Recommendation = string.Join("; ", GenerateCapacityRecommendations(predictedUtilization, currentFactor, capacity))
+                PredictedCapacity = predictedUtilization,
+                CurrentUtilization = currentUtilization,
+                Recommendation = recommendation
             };
-            
-            _logger.LogInformation("Capacity prediction for department {DepartmentId}: {PredictedUtilization}% utilization with {Confidence}% confidence", 
-                departmentId, predictedUtilization * 100, confidence * 100);
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict capacity utilization for department {DepartmentId}", departmentId);
-            return new CapacityPrediction 
-            { 
-                DepartmentId = departmentId, 
-                TargetDate = targetDate, 
-                PredictedCapacity = 75.0m, 
-                CurrentUtilization = 0.75m
-            };
+            _logger.LogError(ex, "Error predicting capacity utilization for department {DepartmentId}", departmentId);
+            throw;
         }
     }
 
+    // Completion Prediction
     public async Task<CompletionPrediction> PredictCompletionTimeAsync(int workRequestId)
     {
         try
         {
-            var avgCompletionTime = await GetAverageCompletionTimeAsync(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
-            var predictedDate = DateTime.UtcNow.AddDays(avgCompletionTime);
+            var workRequest = await _context.WorkRequests
+                .Include(wr => wr.Department)
+                .Include(wr => wr.BusinessVertical)
+                .FirstOrDefaultAsync(wr => wr.Id == workRequestId);
 
-            var result = new CompletionPrediction
+            if (workRequest == null)
+                throw new InvalidOperationException($"Work request {workRequestId} not found");
+
+            // Get historical completion times for similar work requests
+            var similarWorkRequests = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == workRequest.DepartmentId && 
+                            wr.BusinessVerticalId == workRequest.BusinessVerticalId &&
+                            wr.Status == WorkStatus.Completed &&
+                            wr.CreatedDate >= DateTime.UtcNow.AddDays(-365))
+                .ToListAsync();
+
+            var averageCompletionDays = similarWorkRequests.Any() 
+                ? similarWorkRequests.Average(wr => (wr.ActualDate - wr.CreatedDate)?.TotalDays ?? 14)
+                : 14.0;
+
+            // Apply complexity adjustments
+            var complexityMultiplier = CalculateComplexityMultiplier(workRequest);
+            var adjustedCompletionDays = averageCompletionDays * complexityMultiplier;
+
+            // Calculate confidence based on data quality
+            var confidence = CalculateCompletionConfidence(similarWorkRequests.Count, workRequest);
+
+            // Generate factors affecting completion
+            var factors = GenerateCompletionFactors(workRequest, complexityMultiplier);
+
+            var predictedCompletionDate = workRequest.CreatedDate.AddDays(adjustedCompletionDays);
+
+            return new CompletionPrediction
             {
                 WorkRequestId = workRequestId,
-                PredictedCompletionDate = predictedDate,
-                Confidence = 0.75m,
-                Factors = "Historical completion times, current workload, complexity"
+                PredictedCompletionDate = predictedCompletionDate,
+                Confidence = (decimal)confidence,
+                Factors = factors
             };
-
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict completion time for work request {WorkRequestId}", workRequestId);
-            return new CompletionPrediction { WorkRequestId = workRequestId, PredictedCompletionDate = DateTime.UtcNow.AddDays(14) };
+            _logger.LogError(ex, "Error predicting completion time for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 
@@ -256,17 +295,35 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         {
             var trends = new List<CompletionTrend>();
             var currentDate = DateTime.UtcNow;
-            
-            for (int i = 0; i < 30; i++)
+
+            // Get historical completion data
+            var historicalData = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId && 
+                            wr.Status == WorkStatus.Completed &&
+                            wr.CreatedDate >= currentDate.AddDays(-180))
+                .Select(wr => new { wr.CreatedDate, wr.ActualDate })
+                .ToListAsync();
+
+            if (!historicalData.Any())
+                return trends;
+
+            // Calculate trend
+            var trendSlope = CalculateCompletionTrendSlope(historicalData);
+
+            // Predict future trends
+            for (int i = 1; i <= 30; i++)
             {
-                var date = currentDate.AddDays(i);
+                var predictionDate = currentDate.AddDays(i);
+                var predictedCompletionTime = CalculateCompletionTrendPrediction(historicalData, trendSlope, predictionDate);
+                var completedWorkItems = await PredictCompletedWorkItemsAsync(departmentId, predictionDate);
+
                 trends.Add(new CompletionTrend
                 {
                     DepartmentId = departmentId,
-                    Date = date,
-                    AverageCompletionTime = 12.5m + (decimal)(Math.Cos(i * 0.1) * 2),
-                    CompletedWorkItems = new Random().Next(3, 15),
-                    Trend = i % 7 == 0 ? "Weekly Pattern" : "Daily Variation"
+                    Date = predictionDate,
+                    AverageCompletionTime = (decimal)predictedCompletionTime,
+                    CompletedWorkItems = completedWorkItems,
+                    Trend = trendSlope < -0.5 ? "Improving" : trendSlope > 0.5 ? "Declining" : "Stable"
                 });
             }
 
@@ -274,35 +331,52 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict completion trends for department {DepartmentId}", departmentId);
-            return Enumerable.Empty<CompletionTrend>();
+            _logger.LogError(ex, "Error predicting completion trends for department {DepartmentId}", departmentId);
+            return new List<CompletionTrend>();
         }
     }
 
+    // Business Value Analysis
     public async Task<BusinessValueROI> CalculateROIAsync(int workRequestId)
     {
         try
         {
-            var estimatedCost = 50000m;
-            var estimatedValue = 75000m;
-            var roi = (estimatedValue - estimatedCost) / estimatedCost;
+            var workRequest = await _context.WorkRequests
+                .Include(wr => wr.BusinessVertical)
+                .FirstOrDefaultAsync(wr => wr.Id == workRequestId);
 
-            var result = new BusinessValueROI
+            if (workRequest == null)
+                throw new InvalidOperationException($"Work request {workRequestId} not found");
+
+            // Calculate estimated cost based on complexity and department
+            var estimatedCost = await CalculateEstimatedCostAsync(workRequest);
+
+            // Calculate estimated value based on business value and strategic importance
+            var estimatedValue = await CalculateEstimatedValueAsync(workRequest);
+
+            // Calculate ROI
+            var roi = estimatedCost > 0 ? (estimatedValue - estimatedCost) / estimatedCost : 0;
+
+            // Calculate payback period
+            var paybackPeriod = estimatedCost > 0 ? estimatedCost / (estimatedValue / 12) : 0; // months
+
+            // Generate analysis
+            var analysis = GenerateROIAnalysis(workRequest, estimatedCost, estimatedValue, roi, paybackPeriod);
+
+            return new BusinessValueROI
             {
                 WorkRequestId = workRequestId,
                 EstimatedCost = estimatedCost,
                 EstimatedValue = estimatedValue,
                 ROI = roi,
-                PaybackPeriod = estimatedCost / (estimatedValue / 12), // Monthly value
-                Analysis = "Positive ROI with 12-month payback period"
+                PaybackPeriod = paybackPeriod,
+                Analysis = analysis
             };
-
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to calculate ROI for work request {WorkRequestId}", workRequestId);
-            return new BusinessValueROI { WorkRequestId = workRequestId };
+            _logger.LogError(ex, "Error calculating ROI for work request {WorkRequestId}", workRequestId);
+            throw;
         }
     }
 
@@ -311,45 +385,73 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         try
         {
             var trends = new List<BusinessValueTrend>();
-            var currentDate = fromDate;
-            
-            while (currentDate <= toDate)
+
+            // Get work requests for the business vertical
+            var workRequests = await _context.WorkRequests
+                .Where(wr => wr.BusinessVerticalId == businessVerticalId &&
+                            wr.CreatedDate >= fromDate &&
+                            wr.CreatedDate <= toDate)
+                .ToListAsync();
+
+            if (!workRequests.Any())
+                return trends;
+
+            // Group by month and calculate trends
+            var monthlyData = workRequests
+                .GroupBy(wr => new { wr.CreatedDate.Year, wr.CreatedDate.Month })
+                .Select(g => new
+                {
+                    Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                    AverageBusinessValue = g.Average(wr => wr.BusinessValue),
+                    TotalROI = g.Sum(wr => wr.BusinessValue),
+                    WorkRequestCount = g.Count()
+                })
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            foreach (var data in monthlyData)
             {
                 trends.Add(new BusinessValueTrend
                 {
                     BusinessVerticalId = businessVerticalId,
-                    Date = currentDate,
-                    AverageBusinessValue = 0.7m + (decimal)(Math.Sin(currentDate.DayOfYear * 0.01) * 0.1),
-                    TotalROI = 1.25m + (decimal)(Math.Cos(currentDate.DayOfYear * 0.01) * 0.2),
-                    WorkRequestCount = new Random().Next(10, 50),
-                    Trend = currentDate.DayOfWeek == DayOfWeek.Monday ? "Weekly Start" : "Normal Day"
+                    Date = data.Date,
+                    AverageBusinessValue = (decimal)data.AverageBusinessValue,
+                    TotalROI = (decimal)data.TotalROI,
+                    WorkRequestCount = data.WorkRequestCount,
+                    Trend = CalculateBusinessValueTrend(monthlyData, data.Date)
                 });
-                currentDate = currentDate.AddDays(1);
             }
 
             return trends;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to analyze business value trends for business vertical {BusinessVerticalId}", businessVerticalId);
-            return Enumerable.Empty<BusinessValueTrend>();
+            _logger.LogError(ex, "Error analyzing business value trends for business vertical {BusinessVerticalId}", businessVerticalId);
+            return new List<BusinessValueTrend>();
         }
     }
 
+    // Risk Assessment
     public async Task<RiskAssessment> AssessProjectRiskAsync(int workRequestId)
     {
         try
         {
-            // In a real implementation, this would fetch the work request from the database
-            var workRequest = new WorkRequest { Id = workRequestId }; // Placeholder
-            
+            var workRequest = await _context.WorkRequests
+                .Include(wr => wr.Department)
+                .Include(wr => wr.BusinessVertical)
+                .Include(wr => wr.PriorityVotes)
+                .FirstOrDefaultAsync(wr => wr.Id == workRequestId);
+
+            if (workRequest == null)
+                throw new InvalidOperationException($"Work request {workRequestId} not found");
+
             // Calculate risk factors
             var complexityRisk = await CalculateComplexityRiskAsync(workRequest);
             var resourceRisk = await CalculateResourceRiskAsync(workRequest);
             var timelineRisk = await CalculateTimelineRiskAsync(workRequest);
             var dependencyRisk = await CalculateDependencyRiskAsync(workRequest);
             var businessImpactRisk = await CalculateBusinessImpactRiskAsync(workRequest);
-            
+
             // Calculate overall risk score using weighted average
             var riskFactors = new Dictionary<string, double>
             {
@@ -359,259 +461,151 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 { "Dependencies", dependencyRisk },
                 { "Business Impact", businessImpactRisk }
             };
-            
+
             var overallRiskScore = riskFactors.Values.Average();
             var riskLevel = DetermineRiskLevel(overallRiskScore);
-            
+
             // Generate mitigation strategies
             var mitigationStrategies = GenerateMitigationStrategies(riskFactors, riskLevel);
-            
+
             var result = new RiskAssessment
             {
                 WorkRequestId = workRequestId,
                 RiskScore = (decimal)overallRiskScore,
                 RiskLevel = riskLevel,
-                RiskFactors = new List<string> { "Resource constraints", "Technical complexity", "Timeline pressure" },
+                RiskFactors = riskFactors.Where(kvp => kvp.Value > 0.3).Select(kvp => kvp.Key).ToList(),
                 MitigationStrategy = string.Join(", ", mitigationStrategies)
             };
-            
+
             _logger.LogInformation("Risk assessment completed for work request {WorkRequestId}: {RiskLevel} risk (Score: {Score})", 
                 workRequestId, riskLevel, overallRiskScore);
+
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to assess risk for work request {WorkRequestId}", workRequestId);
-            return new RiskAssessment 
-            { 
-                WorkRequestId = workRequestId, 
-                RiskScore = 5.0m, 
-                RiskLevel = "Medium" 
-            };
+            _logger.LogError(ex, "Error assessing project risk for work request {WorkRequestId}", workRequestId);
+            throw;
         }
-    }
-
-    private async Task<double> CalculateComplexityRiskAsync(WorkRequest workRequest)
-    {
-        var complexity = 5.0f; // Default complexity
-        var estimatedHours = workRequest.EstimatedEffort;
-        var teamSize = 1; // Placeholder
-        
-        // Complexity risk increases with higher complexity, longer duration, and smaller teams
-        var complexityFactor = complexity / 10.0;
-        var durationFactor = Math.Min(1.0, estimatedHours / 200.0); // Normalize to 0-1
-        var teamFactor = Math.Max(0.1, 1.0 - (teamSize / 10.0)); // Smaller teams = higher risk
-        
-        return (complexityFactor * 0.5 + durationFactor * 0.3 + teamFactor * 0.2) * 10.0;
-    }
-
-    private async Task<double> CalculateResourceRiskAsync(WorkRequest workRequest)
-    {
-        var departmentId = workRequest.DepartmentId;
-        var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
-        var capacity = await GetDepartmentCapacityAsync(departmentId);
-        var utilizationRate = currentUtilization / capacity;
-        
-        // Resource risk increases with higher utilization
-        var utilizationRisk = utilizationRate * 10.0;
-        
-        // Additional factors: skill availability, experience level, etc.
-        var skillGapRisk = 3.0; // Placeholder - would be calculated based on required vs available skills
-        var experienceRisk = 2.0; // Placeholder - would be calculated based on team experience
-        
-        return Math.Min(10.0, utilizationRisk + skillGapRisk + experienceRisk);
-    }
-
-    private async Task<double> CalculateTimelineRiskAsync(WorkRequest workRequest)
-    {
-        var targetDate = workRequest.TargetDate;
-        var estimatedHours = workRequest.EstimatedEffort;
-        var currentDate = DateTime.UtcNow;
-        
-        if (!targetDate.HasValue)
-            return 5.0; // Medium risk if no target date specified
-        
-        var daysUntilTarget = (targetDate.Value - currentDate).TotalDays;
-        var estimatedDays = estimatedHours / 8.0; // Assuming 8 hours per day
-        
-        // Timeline risk based on buffer time
-        var bufferRatio = daysUntilTarget / estimatedDays;
-        
-        return bufferRatio switch
-        {
-            <= 0.5 => 10.0, // Critical - very tight timeline
-            <= 1.0 => 8.0,  // High - tight timeline
-            <= 1.5 => 6.0,  // Medium - moderate buffer
-            <= 2.0 => 4.0,  // Low - good buffer
-            _ => 2.0         // Very low - ample time
-        };
-    }
-
-    private async Task<double> CalculateDependencyRiskAsync(WorkRequest workRequest)
-    {
-        // Placeholder values - in real implementation, these would be calculated based on actual dependencies
-        var dependencies = 0; // Placeholder
-        var externalDependencies = 0; // Placeholder
-        
-        // Dependency risk increases with more dependencies, especially external ones
-        var internalRisk = Math.Min(5.0, dependencies * 1.0);
-        var externalRisk = Math.Min(5.0, externalDependencies * 2.0); // External dependencies are riskier
-        
-        return Math.Min(10.0, internalRisk + externalRisk);
-    }
-
-    private async Task<double> CalculateBusinessImpactRiskAsync(WorkRequest workRequest)
-    {
-        var businessValue = (float)workRequest.BusinessValue;
-        var customerImpact = 5.0f; // Placeholder
-        var revenueImpact = 0.0f; // Placeholder
-        
-        // Higher business impact means higher risk if the project fails
-        var impactScore = (businessValue + customerImpact + revenueImpact) / 3.0;
-        
-        // Risk is inversely proportional to impact - higher impact = higher risk
-        return (11.0 - impactScore); // Invert the scale so higher impact = higher risk
-    }
-
-    private string DetermineRiskLevel(double riskScore)
-    {
-        return riskScore switch
-        {
-            >= 8.5 => "Critical",
-            >= 7.0 => "High",
-            >= 5.5 => "Medium",
-            >= 4.0 => "Low",
-            _ => "Very Low"
-        };
-    }
-
-    private List<string> GenerateMitigationStrategies(Dictionary<string, double> riskFactors, string riskLevel)
-    {
-        var strategies = new List<string>();
-        
-        // Add general strategies based on risk level
-        if (riskLevel == "Critical" || riskLevel == "High")
-        {
-            strategies.Add("Implement daily risk monitoring and reporting");
-            strategies.Add("Establish contingency plans for key failure points");
-            strategies.Add("Increase stakeholder communication frequency");
-        }
-        
-        // Add specific strategies based on risk factors
-        foreach (var factor in riskFactors.OrderByDescending(x => x.Value))
-        {
-            if (factor.Value >= 7.0)
-            {
-                strategies.AddRange(GetSpecificMitigationStrategies(factor.Key));
-            }
-        }
-        
-        return strategies.Distinct().ToList();
-    }
-
-    private List<string> GetSpecificMitigationStrategies(string riskFactor)
-    {
-        return riskFactor switch
-        {
-            "Complexity" => new List<string>
-            {
-                "Break down complex tasks into smaller, manageable pieces",
-                "Assign experienced team members to complex components",
-                "Implement additional review and testing phases"
-            },
-            "Resource Availability" => new List<string>
-            {
-                "Identify backup resources and cross-training opportunities",
-                "Consider external contractors for specialized skills",
-                "Optimize resource allocation and scheduling"
-            },
-            "Timeline" => new List<string>
-            {
-                "Implement parallel work streams where possible",
-                "Add buffer time to critical path activities",
-                "Consider scope reduction for non-critical features"
-            },
-            "Dependencies" => new List<string>
-            {
-                "Establish clear communication channels with dependency owners",
-                "Create dependency tracking and escalation procedures",
-                "Develop alternative approaches for critical dependencies"
-            },
-            "Business Impact" => new List<string>
-            {
-                "Implement phased delivery approach",
-                "Establish rollback procedures for critical changes",
-                "Increase stakeholder involvement and sign-off requirements"
-            },
-            _ => new List<string> { "Monitor and review regularly" }
-        };
     }
 
     public async Task<IEnumerable<RiskIndicator>> GetRiskIndicatorsAsync(int departmentId)
     {
         try
         {
-            var indicators = new List<RiskIndicator>
+            var indicators = new List<RiskIndicator>();
+
+            // Get department work requests
+            var workRequests = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId && wr.Status != WorkStatus.Completed)
+                .ToListAsync();
+
+            if (!workRequests.Any())
+                return indicators;
+
+            // Calculate various risk indicators
+            var overdueRisk = CalculateOverdueRisk(workRequests);
+            var capacityRisk = CalculateCapacityRisk(departmentId);
+            var complexityRisk = CalculateComplexityRisk(workRequests);
+            var dependencyRisk = CalculateDependencyRisk(workRequests);
+
+            if (overdueRisk > 0.3)
             {
-                new RiskIndicator
+                indicators.Add(new RiskIndicator
                 {
                     DepartmentId = departmentId,
-                    RiskType = "Resource Overload",
-                    RiskScore = 0.6m,
-                    RiskLevel = "Medium",
-                    Description = "Department utilization above 80%",
-                    MitigationAction = "Consider resource reallocation"
-                },
-                new RiskIndicator
+                    RiskType = "Overdue Work",
+                    RiskScore = overdueRisk,
+                    RiskLevel = DetermineRiskLevel(overdueRisk),
+                    Description = "High number of overdue work requests",
+                    MitigationAction = "Review and reprioritize overdue items"
+                });
+            }
+
+            if (capacityRisk > 0.3)
+            {
+                indicators.Add(new RiskIndicator
                 {
                     DepartmentId = departmentId,
-                    RiskType = "Timeline Pressure",
-                    RiskScore = 0.4m,
-                    RiskLevel = "Low",
-                    Description = "Multiple high-priority items due soon",
-                    MitigationAction = "Prioritize and communicate delays"
-                }
-            };
+                    RiskType = "Capacity Overload",
+                    RiskScore = capacityRisk,
+                    RiskLevel = DetermineRiskLevel(capacityRisk),
+                    Description = "Department capacity utilization is high",
+                    MitigationAction = "Consider resource allocation or workload redistribution"
+                });
+            }
+
+            if (complexityRisk > 0.3)
+            {
+                indicators.Add(new RiskIndicator
+                {
+                    DepartmentId = departmentId,
+                    RiskType = "High Complexity",
+                    RiskScore = complexityRisk,
+                    RiskLevel = DetermineRiskLevel(complexityRisk),
+                    Description = "High complexity work requests may cause delays",
+                    MitigationAction = "Break down complex work into smaller tasks"
+                });
+            }
+
+            if (dependencyRisk > 0.3)
+            {
+                indicators.Add(new RiskIndicator
+                {
+                    DepartmentId = departmentId,
+                    RiskType = "Dependency Risk",
+                    RiskScore = dependencyRisk,
+                    RiskLevel = DetermineRiskLevel(dependencyRisk),
+                    Description = "Work requests have external dependencies",
+                    MitigationAction = "Coordinate with dependent teams and set clear expectations"
+                });
+            }
 
             return indicators;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get risk indicators for department {DepartmentId}", departmentId);
-            return Enumerable.Empty<RiskIndicator>();
+            _logger.LogError(ex, "Error getting risk indicators for department {DepartmentId}", departmentId);
+            return new List<RiskIndicator>();
         }
     }
 
+    // Predictive Insights
     public async Task<IEnumerable<PredictiveInsight>> GetPredictiveInsightsAsync(int businessVerticalId)
     {
         try
         {
-            var insights = new List<PredictiveInsight>
-            {
-                new PredictiveInsight
-                {
-                    InsightType = "Workload Prediction",
-                    Description = "Expected 15% increase in workload next quarter",
-                    Confidence = 0.85m,
-                    PredictedDate = DateTime.UtcNow.AddMonths(3),
-                    Recommendation = "Prepare additional resources"
-                },
-                new PredictiveInsight
-                {
-                    InsightType = "Priority Trend",
-                    Description = "High-priority requests increasing by 20%",
-                    Confidence = 0.78m,
-                    PredictedDate = DateTime.UtcNow.AddMonths(1),
-                    Recommendation = "Review priority calculation algorithm"
-                }
-            };
+            var insights = new List<PredictiveInsight>();
+
+            // Get work requests for the business vertical
+            var workRequests = await _context.WorkRequests
+                .Where(wr => wr.BusinessVerticalId == businessVerticalId &&
+                            wr.CreatedDate >= DateTime.UtcNow.AddDays(-90))
+                .ToListAsync();
+
+            if (!workRequests.Any())
+                return insights;
+
+            // Analyze patterns and generate insights
+            var priorityInsight = GeneratePriorityInsight(workRequests);
+            var capacityInsight = GenerateCapacityInsight(workRequests);
+            var trendInsight = GenerateTrendInsight(workRequests);
+
+            if (priorityInsight != null)
+                insights.Add(priorityInsight);
+
+            if (capacityInsight != null)
+                insights.Add(capacityInsight);
+
+            if (trendInsight != null)
+                insights.Add(trendInsight);
 
             return insights;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get predictive insights for business vertical {BusinessVerticalId}", businessVerticalId);
-            return Enumerable.Empty<PredictiveInsight>();
+            _logger.LogError(ex, "Error getting predictive insights for business vertical {BusinessVerticalId}", businessVerticalId);
+            return new List<PredictiveInsight>();
         }
     }
 
@@ -619,815 +613,595 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
     {
         try
         {
+            var department = await _context.Departments
+                .FirstOrDefaultAsync(d => d.Id == departmentId);
+
+            if (department == null)
+                throw new InvalidOperationException($"Department {departmentId} not found");
+
             // Get historical workload data
-            var historicalWorkload = await GetHistoricalWorkloadAsync(departmentId);
-            var currentWorkload = await GetCurrentDepartmentWorkloadAsync(departmentId);
-            
-            // Calculate workload components
-            var baseWorkload = historicalWorkload.Count > 0 ? historicalWorkload.Average() : currentWorkload;
-            var trendFactor = CalculateWorkloadTrend(historicalWorkload);
-            var seasonalityFactor = GetSeasonalityFactor(targetDate);
-            var growthFactor = CalculateGrowthFactor(departmentId, targetDate);
-            
-            // Predict workload using multiple factors
-            var predictedWorkload = baseWorkload * (1 + trendFactor) * seasonalityFactor * growthFactor;
-            predictedWorkload = Math.Max(0, predictedWorkload);
-            
-            // Calculate utilization percentage
-            var capacity = await GetDepartmentCapacityAsync(departmentId);
-            var predictedUtilization = (decimal)(predictedWorkload / capacity);
-            
-            // Determine trend direction
-            var trend = trendFactor > 0 ? "Increasing" : trendFactor < 0 ? "Decreasing" : "Stable";
-            
-            var result = new WorkloadPrediction
+            var historicalData = await _context.WorkRequests
+                .Where(wr => wr.DepartmentId == departmentId &&
+                            wr.CreatedDate >= targetDate.AddDays(-60))
+                .GroupBy(wr => wr.CreatedDate.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            if (!historicalData.Any())
+                return new WorkloadPrediction
+                {
+                    DepartmentId = departmentId,
+                    TargetDate = targetDate,
+                    PredictedUtilization = department.CurrentUtilization,
+                    PredictedWorkItems = 0,
+                    Trend = "Stable"
+                };
+
+            // Calculate trend
+            var trendSlope = CalculateTrendSlope(historicalData.Select(h => new { Date = h.Date, Value = (double)h.Count }));
+            var averageWorkItems = historicalData.Average(h => h.Count);
+            var predictedWorkItems = (int)(averageWorkItems + (trendSlope * 30));
+
+            // Calculate predicted utilization
+            var predictedUtilization = Math.Min(100.0m, Math.Max(0.0m, 
+                department.CurrentUtilization + (decimal)(trendSlope * 10)));
+
+            var trend = trendSlope switch
+            {
+                > 0.1 => "Increasing",
+                < -0.1 => "Decreasing",
+                _ => "Stable"
+            };
+
+            return new WorkloadPrediction
             {
                 DepartmentId = departmentId,
                 TargetDate = targetDate,
                 PredictedUtilization = predictedUtilization,
-                PredictedWorkItems = (int)predictedWorkload,
+                PredictedWorkItems = predictedWorkItems,
                 Trend = trend
             };
-            
-            _logger.LogInformation("Workload prediction for department {DepartmentId}: {PredictedWorkItems} items with {PredictedUtilization}% utilization", 
-                departmentId, result.PredictedWorkItems, result.PredictedUtilization * 100);
-            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to predict workload for department {DepartmentId}", departmentId);
-            return new WorkloadPrediction 
-            { 
-                DepartmentId = departmentId, 
-                TargetDate = targetDate, 
-                PredictedUtilization = 0.75m, 
-                PredictedWorkItems = 20 
-            };
+            _logger.LogError(ex, "Error predicting workload for department {DepartmentId}", departmentId);
+            throw;
         }
     }
 
-    public async Task<WorkloadPrediction> PredictDepartmentWorkloadAsync(int departmentId, DateTime forecastDate)
+    // Helper methods for real business logic
+    private async Task<decimal> CalculateMLPriorityAdjustmentAsync(WorkRequest workRequest)
     {
-        try
-        {
-            // This would use historical workload data and time series forecasting
-            var historicalWorkload = await GetHistoricalWorkloadAsync(departmentId);
-            var seasonalityFactor = GetSeasonalityFactor(forecastDate);
-            var trendFactor = GetTrendFactor(historicalWorkload);
-
-            var predictedWorkload = historicalWorkload.Average() * seasonalityFactor * trendFactor;
-
-            var result = new WorkloadPrediction
-            {
-                DepartmentId = departmentId,
-                TargetDate = forecastDate,
-                PredictedUtilization = (decimal)(predictedWorkload / 100.0),
-                PredictedWorkItems = (int)predictedWorkload,
-                Trend = "Increasing"
-            };
-
-            _logger.LogInformation("Predicted workload {PredictedUtilization} for department {DepartmentId} on {TargetDate}", 
-                result.PredictedUtilization, departmentId, forecastDate);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to predict workload for department {DepartmentId}", departmentId);
-            return new WorkloadPrediction { DepartmentId = departmentId, TargetDate = forecastDate, PredictedUtilization = 0.0m, PredictedWorkItems = 0 };
-        }
-    }
-
-    public async Task<List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>> IdentifyWorkflowBottlenecksAsync()
-    {
-        try
-        {
-            // Analyze workflow stages for bottlenecks
-            var workflowStages = new[]
-            {
-                "Intake", "Initial Review", "Priority Assessment", "Department Assignment",
-                "Technical Review", "Business Analysis", "Resource Allocation", "Development",
-                "Testing", "User Acceptance", "Deployment", "Monitoring", "Documentation",
-                "Training", "Closure"
-            };
-
-            var bottlenecks = new List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>();
-
-            foreach (var stage in workflowStages)
-            {
-                var averageTime = await GetAverageTimeInStageAsync(stage);
-                var itemsInStage = await GetItemsInStageAsync(stage);
-                var bottleneckScore = CalculateBottleneckScore(averageTime, itemsInStage);
-
-                if (bottleneckScore > 0.7) // Threshold for bottleneck
-                {
-                    bottlenecks.Add(new WorkIntakeSystem.Core.Entities.WorkflowBottleneck
-                    {
-                        Stage = stage,
-                        AverageTimeInStage = averageTime,
-                        ItemsInStage = itemsInStage,
-                        BottleneckScore = bottleneckScore,
-                        Recommendations = GenerateBottleneckRecommendations(stage, averageTime, itemsInStage)
-                    });
-                }
-            }
-
-            _logger.LogInformation("Identified {BottleneckCount} workflow bottlenecks", bottlenecks.Count);
-            return bottlenecks;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to identify workflow bottlenecks");
-            return new List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>();
-        }
-    }
-
-    public async Task<ResourceOptimizationSuggestion> GetResourceOptimizationSuggestionsAsync(int departmentId)
-    {
-        try
-        {
-            // Analyze department resources and workload
-            var currentWorkload = await GetCurrentDepartmentWorkloadAsync(departmentId);
-            var teamCapacity = await GetDepartmentCapacityAsync(departmentId);
-            var utilizationRate = currentWorkload / teamCapacity;
-
-            string suggestionType;
-            string description;
-            double potentialImpact;
-            string priority;
-
-            if (utilizationRate > 0.9)
-            {
-                suggestionType = "Resource Addition";
-                description = "Department is over-utilized. Consider adding team members or redistributing workload.";
-                potentialImpact = 0.8;
-                priority = "High";
-            }
-            else if (utilizationRate < 0.6)
-            {
-                suggestionType = "Resource Reallocation";
-                description = "Department has available capacity. Consider taking on additional work or cross-training.";
-                potentialImpact = 0.6;
-                priority = "Medium";
-            }
-            else
-            {
-                suggestionType = "Process Optimization";
-                description = "Department utilization is optimal. Focus on process improvements and automation.";
-                potentialImpact = 0.4;
-                priority = "Low";
-            }
-
-            var result = new ResourceOptimizationSuggestion
-            {
-                DepartmentId = departmentId,
-                SuggestionType = suggestionType,
-                Description = description,
-                PotentialImpact = potentialImpact,
-                Priority = priority
-            };
-
-            _logger.LogInformation("Generated resource optimization suggestion for department {DepartmentId}: {SuggestionType}", 
-                departmentId, suggestionType);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate resource optimization suggestions for department {DepartmentId}", departmentId);
-            return new ResourceOptimizationSuggestion { DepartmentId = departmentId };
-        }
-    }
-
-    // Business Intelligence Dashboards
-    public async Task<ExecutiveDashboard> GetExecutiveDashboardAsync(DateTime startDate, DateTime endDate)
-    {
-        try
-        {
-            var dashboard = new ExecutiveDashboard
-            {
-                TotalWorkRequests = await GetTotalWorkRequestsAsync(startDate, endDate),
-                AverageCompletionTime = await GetAverageCompletionTimeAsync(startDate, endDate),
-                StatusDistribution = await GetStatusDistributionAsync(startDate, endDate),
-                DepartmentMetrics = await GetDepartmentMetricsAsync(startDate, endDate),
-                TrendData = await GetTrendDataAsync(startDate, endDate)
-            };
-
-            _logger.LogInformation("Generated executive dashboard for period {StartDate} to {EndDate}", startDate, endDate);
-            return dashboard;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate executive dashboard");
-            return new ExecutiveDashboard();
-        }
-    }
-
-    public async Task<DepartmentDashboard> GetDepartmentDashboardAsync(int departmentId, DateTime startDate, DateTime endDate)
-    {
-        try
-        {
-            var dashboard = new DepartmentDashboard
-            {
-                DepartmentId = departmentId,
-                DepartmentName = await GetDepartmentNameAsync(departmentId),
-                ActiveWorkRequests = await GetActiveWorkRequestsCountAsync(departmentId),
-                TeamUtilization = await GetTeamUtilizationAsync(departmentId),
-                UserMetrics = await GetUserMetricsAsync(departmentId, startDate, endDate),
-                WorkloadTrends = await GetWorkloadTrendsAsync(departmentId, startDate, endDate)
-            };
-
-            _logger.LogInformation("Generated department dashboard for department {DepartmentId}", departmentId);
-            return dashboard;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate department dashboard for department {DepartmentId}", departmentId);
-            return new DepartmentDashboard { DepartmentId = departmentId };
-        }
-    }
-
-    public async Task<ProjectDashboard> GetProjectDashboardAsync(int projectId, DateTime startDate, DateTime endDate)
-    {
-        try
-        {
-            // Implementation for project dashboard
-            var dashboard = new ProjectDashboard
-            {
-                ProjectId = projectId,
-                ProjectName = $"Project {projectId}",
-                CompletionPercentage = 75.5,
-                TasksCompleted = 45,
-                TasksRemaining = 15,
-                TeamMembers = 8,
-                Budget = 150000,
-                BudgetUsed = 112500
-            };
-
-            _logger.LogInformation("Generated project dashboard for project {ProjectId}", projectId);
-            return dashboard;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate project dashboard for project {ProjectId}", projectId);
-            return new ProjectDashboard { ProjectId = projectId };
-        }
-    }
-
-    // Custom Report Builder
-    public async Task<CustomReport> BuildCustomReportAsync(CustomReportRequest request)
-    {
-        try
-        {
-            var report = new CustomReport
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = request.ReportName,
-                CreatedDate = DateTime.UtcNow,
-                Data = await GenerateReportDataAsync(request),
-                Charts = request.Charts,
-                Filters = request.Filters.Select(kvp => new ReportFilter
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    FieldName = kvp.Key,
-                    Operator = "=",
-                    Value = kvp.Value,
-                    DisplayName = kvp.Key
-                }).ToList()
-            };
-
-            _logger.LogInformation("Built custom report {ReportName}", request.ReportName);
-            return report;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to build custom report {ReportName}", request.ReportName);
-            return new CustomReport { Name = request.ReportName };
-        }
-    }
-
-    public async Task<List<ReportTemplate>> GetReportTemplatesAsync()
-    {
-        try
-        {
-            var templates = new List<ReportTemplate>
-            {
-                new ReportTemplate
-                {
-                    Id = "executive-summary",
-                    Name = "Executive Summary",
-                    Description = "High-level overview of work requests and department performance",
-                    Category = "Executive"
-                },
-                new ReportTemplate
-                {
-                    Id = "department-performance",
-                    Name = "Department Performance",
-                    Description = "Detailed analysis of department metrics and trends",
-                    Category = "Department"
-                },
-                new ReportTemplate
-                {
-                    Id = "workflow-analysis",
-                    Name = "Workflow Analysis",
-                    Description = "Analysis of workflow stages and bottlenecks",
-                    Category = "Process"
-                }
-            };
-
-            _logger.LogInformation("Retrieved {TemplateCount} report templates", templates.Count);
-            return templates;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get report templates");
-            return new List<ReportTemplate>();
-        }
-    }
-
-    public async Task<string> SaveReportTemplateAsync(ReportTemplate template)
-    {
-        try
-        {
-            template.Id = Guid.NewGuid().ToString();
-            template.CreatedDate = DateTime.UtcNow;
-            
-            // Save template to database (implementation would depend on your data layer)
-            _logger.LogInformation("Saved report template {TemplateName} with ID {TemplateId}", template.Name, template.Id);
-            return template.Id;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to save report template {TemplateName}", template.Name);
-            return string.Empty;
-        }
-    }
-
-    public async Task<byte[]> ExportReportAsync(string reportId, ExportFormat format)
-    {
-        try
-        {
-            // Get report data
-            var reportData = await GetReportDataAsync(reportId);
-
-            return format switch
-            {
-                ExportFormat.Excel => await ExportToExcelAsync(reportData),
-                ExportFormat.CSV => await ExportToCsvAsync(reportData),
-                ExportFormat.JSON => await ExportToJsonAsync(reportData),
-                ExportFormat.PDF => await ExportToPdfAsync(reportData),
-                _ => throw new ArgumentException($"Unsupported export format: {format}")
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to export report {ReportId} in format {Format}", reportId, format);
-            return Array.Empty<byte>();
-        }
-    }
-
-    // Data Export
-    public async Task<byte[]> ExportDataAsync(DataExportRequest request)
-    {
-        try
-        {
-            var data = await GetDataForExportAsync(request);
-            
-            return request.Format switch
-            {
-                ExportFormat.Excel => await ExportToExcelAsync(data),
-                ExportFormat.CSV => await ExportToCsvAsync(data),
-                ExportFormat.JSON => await ExportToJsonAsync(data),
-                ExportFormat.PDF => await ExportToPdfAsync(data),
-                _ => throw new ArgumentException($"Unsupported export format: {request.Format}")
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to export data for entity type {EntityType}", request.EntityType);
-            return Array.Empty<byte>();
-        }
-    }
-
-    public async Task<string> ScheduleDataExportAsync(DataExportSchedule schedule)
-    {
-        try
-        {
-            var scheduleId = Guid.NewGuid().ToString();
-            
-            // Implementation would integrate with a job scheduler like Hangfire or Quartz.NET
-            _logger.LogInformation("Scheduled data export {ScheduleId} for {EntityType}", scheduleId, schedule.EntityType);
-            return scheduleId;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to schedule data export for entity type {EntityType}", schedule.EntityType);
-            return string.Empty;
-        }
-    }
-
-    public async Task<List<DataExportHistory>> GetExportHistoryAsync()
-    {
-        try
-        {
-            // Mock data - in practice, this would come from database
-            var history = new List<DataExportHistory>
-            {
-                new DataExportHistory
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    EntityType = "WorkRequest",
-                    Format = ExportFormat.Excel,
-                    ExportDate = DateTime.UtcNow.AddDays(-1),
-                    RecordCount = 1250,
-                    FileSizeBytes = 2048000,
-                    Status = "Completed"
-                }
-            };
-
-            _logger.LogInformation("Retrieved {HistoryCount} export history records", history.Count);
-            return history;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get export history");
-            return new List<DataExportHistory>();
-        }
-    }
-
-    // Helper methods
-    private List<PriorityTrainingData> GenerateTrainingData()
-    {
-        // In a real implementation, this would query the database for historical work requests
-        // For now, we'll generate synthetic training data
-        var trainingData = new List<PriorityTrainingData>();
-        var random = new Random(42); // Fixed seed for reproducible results
+        // In a real implementation, this would use a trained ML model
+        // For now, we'll use a simplified algorithm based on business rules
         
-        for (int i = 0; i < 1000; i++)
+        var adjustment = 0.0m;
+
+        // Business value adjustment
+        adjustment += workRequest.BusinessValue * 0.1m;
+
+        // Strategic alignment adjustment
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.7m)
+            adjustment += 0.05m;
+
+        // Urgency adjustment based on target date
+        if (workRequest.TargetDate.HasValue)
         {
-            trainingData.Add(new PriorityTrainingData
-            {
-                Category = $"Category{(i % 5) + 1}",
-                Department = $"Department{(i % 8) + 1}",
-                BusinessVertical = $"Vertical{(i % 4) + 1}",
-                BusinessValue = random.Next(1, 11),
-                Urgency = random.Next(1, 11),
-                Complexity = random.Next(1, 11),
-                EstimatedHours = random.Next(8, 200),
-                ResourceAvailability = random.Next(1, 11),
-                StrategicAlignment = random.Next(1, 11),
-                Priority = CalculateSyntheticPriority(random.Next(1, 11), random.Next(1, 11), random.Next(1, 11))
-            });
+            var daysUntilTarget = (workRequest.TargetDate.Value - DateTime.UtcNow).Days;
+            if (daysUntilTarget <= 7)
+                adjustment += 0.1m;
+            else if (daysUntilTarget <= 30)
+                adjustment += 0.05m;
         }
-        
-        return trainingData;
+
+        // Department capacity adjustment
+        if (workRequest.Department?.CurrentUtilization > 80m)
+            adjustment -= 0.05m; // Lower priority for overloaded departments
+
+        return Math.Max(-0.2m, Math.Min(0.2m, adjustment));
     }
 
-    private async Task<List<double>> GetHistoricalWorkloadAsync(int departmentId)
+    private decimal CalculatePredictionConfidence(WorkRequest workRequest)
     {
-        // Mock historical data
-        return new List<double> { 45.2, 52.1, 48.7, 55.3, 49.8, 51.2, 47.9 };
+        var confidence = 0.7m; // Base confidence
+
+        // Increase confidence based on data quality
+        if (workRequest.PriorityVotes?.Any() == true)
+            confidence += 0.1m;
+
+        if (workRequest.BusinessValue > 0)
+            confidence += 0.1m;
+
+        if (workRequest.TargetDate.HasValue)
+            confidence += 0.05m;
+
+        return Math.Min(1.0m, confidence);
     }
 
-    private double GetSeasonalityFactor(DateTime date)
+    private string GeneratePriorityReasoning(WorkRequest workRequest, decimal basePriority, decimal mlAdjustment, decimal confidence)
     {
-        // Simple seasonality calculation based on month
-        var month = date.Month;
-        return month switch
-        {
-            12 or 1 => 0.8, // Holiday season
-            6 or 7 => 0.9, // Summer
-            _ => 1.0
-        };
+        var reasons = new List<string>();
+
+        reasons.Add($"Base priority: {basePriority:F2}");
+
+        if (mlAdjustment > 0)
+            reasons.Add($"ML adjustment: +{mlAdjustment:F2} (business value, strategic alignment)");
+        else if (mlAdjustment < 0)
+            reasons.Add($"ML adjustment: {mlAdjustment:F2} (department capacity constraints)");
+
+        if (workRequest.BusinessValue > 0.7m)
+            reasons.Add("High business value");
+
+        if (workRequest.TargetDate.HasValue && (workRequest.TargetDate.Value - DateTime.UtcNow).Days <= 30)
+            reasons.Add("Urgent timeline");
+
+        reasons.Add($"Confidence: {confidence:P0}");
+
+        return string.Join("; ", reasons);
     }
 
-    private double GetTrendFactor(List<double> historicalData)
+    private double CalculateTrendSlope(IEnumerable<dynamic> data)
     {
-        if (historicalData.Count < 2) return 1.0;
-        
-        var trend = (historicalData.Last() - historicalData.First()) / historicalData.Count;
-        return 1.0 + (trend / 100.0); // Convert to factor
-    }
+        var dataList = data.ToList();
+        if (dataList.Count < 2) return 0;
 
-    private async Task<byte[]> ExportToExcelAsync(object data)
-    {
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        using var package = new ExcelPackage();
-        var worksheet = package.Workbook.Worksheets.Add("Data");
-        
-        // Simple implementation - would be more sophisticated in practice
-        worksheet.Cells[1, 1].Value = "Export Data";
-        worksheet.Cells[2, 1].Value = JsonSerializer.Serialize(data);
-        
-        return package.GetAsByteArray();
-    }
+        var xValues = Enumerable.Range(0, dataList.Count).Select(i => (double)i).ToArray();
+        var yValues = dataList.Select(d => (double)d.Value).ToArray();
 
-    private async Task<byte[]> ExportToCsvAsync(object data)
-    {
-        using var writer = new StringWriter();
-        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-        
-        // Simple implementation
-        csv.WriteField("Data");
-        csv.NextRecord();
-        csv.WriteField(JsonSerializer.Serialize(data));
-        
-        return System.Text.Encoding.UTF8.GetBytes(writer.ToString());
-    }
+        var n = xValues.Length;
+        var sumX = xValues.Sum();
+        var sumY = yValues.Sum();
+        var sumXY = xValues.Zip(yValues, (x, y) => x * y).Sum();
+        var sumX2 = xValues.Select(x => x * x).Sum();
 
-    private async Task<byte[]> ExportToJsonAsync(object data)
-    {
-        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-        return System.Text.Encoding.UTF8.GetBytes(json);
-    }
-
-    private async Task<byte[]> ExportToPdfAsync(object data)
-    {
-        // This would use a PDF library like iTextSharp
-        var content = $"PDF Export\n\n{JsonSerializer.Serialize(data)}";
-        return System.Text.Encoding.UTF8.GetBytes(content);
-    }
-
-    // Additional helper methods would be implemented here...
-    private async Task<int> GetTotalWorkRequestsAsync(DateTime startDate, DateTime endDate) => 150;
-    private async Task<double> GetAverageCompletionTimeAsync(DateTime startDate, DateTime endDate) => 14.5;
-    private async Task<Dictionary<string, int>> GetStatusDistributionAsync(DateTime startDate, DateTime endDate) => 
-        new Dictionary<string, int> { {"Active", 45}, {"Completed", 85}, {"On Hold", 20} };
-    private async Task<List<DepartmentMetrics>> GetDepartmentMetricsAsync(DateTime startDate, DateTime endDate) => new();
-    private async Task<List<TrendData>> GetTrendDataAsync(DateTime startDate, DateTime endDate) => new();
-    private async Task<string> GetDepartmentNameAsync(int departmentId) => $"Department {departmentId}";
-    private async Task<int> GetActiveWorkRequestsCountAsync(int departmentId) => 25;
-    private async Task<double> GetTeamUtilizationAsync(int departmentId) => 0.78;
-    private async Task<List<UserMetrics>> GetUserMetricsAsync(int departmentId, DateTime startDate, DateTime endDate) => new();
-    private async Task<List<WorkloadTrend>> GetWorkloadTrendsAsync(int departmentId, DateTime startDate, DateTime endDate) => new();
-    private async Task<object> GenerateReportDataAsync(CustomReportRequest request) => new { Data = "Sample report data" };
-    private async Task<object> GetReportDataAsync(string reportId) => new { ReportId = reportId, Data = "Sample data" };
-    private async Task<object> GetDataForExportAsync(DataExportRequest request) => new { EntityType = request.EntityType, Data = "Sample export data" };
-    private async Task<double> GetAverageTimeInStageAsync(string stage) => new Random().NextDouble() * 10 + 2;
-    private async Task<int> GetItemsInStageAsync(string stage) => new Random().Next(5, 25);
-    private double CalculateBottleneckScore(double averageTime, int itemsInStage) => (averageTime * itemsInStage) / 100.0;
-    private List<string> GenerateBottleneckRecommendations(string stage, double averageTime, int itemsInStage) => 
-        new List<string> { $"Optimize {stage} process", "Add resources", "Automate routine tasks" };
-    private async Task<double> GetCurrentDepartmentWorkloadAsync(int departmentId) => 85.5;
-    private async Task<double> GetDepartmentCapacityAsync(int departmentId) => 100.0;
-
-    private async Task<float> CalculateBusinessValueAsync(WorkRequest workRequest)
-    {
-        // Calculate business value based on multiple factors
-        var baseValue = (float)workRequest.BusinessValue;
-        var strategicImportance = 5.0f; // Placeholder - would be calculated based on business vertical
-        var customerImpact = 5.0f; // Placeholder - would be calculated based on business impact
-        var revenueImpact = 0.0f; // Placeholder - would be calculated based on revenue impact
-        
-        // Weighted calculation
-        var businessValue = (baseValue * 0.3f) + (strategicImportance * 0.3f) + (customerImpact * 0.2f) + (revenueImpact * 0.2f);
-        
-        return Math.Min(10.0f, Math.Max(1.0f, businessValue));
-    }
-
-    private async Task<float> CalculateUrgencyAsync(WorkRequest workRequest)
-    {
-        var baseUrgency = 5.0f; // Default urgency
-        var targetDate = workRequest.TargetDate;
-        var currentDate = DateTime.UtcNow;
-        
-        if (targetDate.HasValue)
-        {
-            var daysUntilTarget = (targetDate.Value - currentDate).TotalDays;
-            var urgencyMultiplier = daysUntilTarget <= 7 ? 1.5f : daysUntilTarget <= 30 ? 1.2f : 1.0f;
-            return Math.Min(10.0f, baseUrgency * urgencyMultiplier);
-        }
-        
-        return baseUrgency;
-    }
-
-    private async Task<float> CalculateComplexityAsync(WorkRequest workRequest)
-    {
-        var baseComplexity = 5.0f; // Default complexity
-        var estimatedHours = workRequest.EstimatedEffort;
-        var teamSize = 1; // Placeholder - would be calculated based on team size
-        
-        // Adjust complexity based on estimated hours and team size
-        var hoursMultiplier = estimatedHours > 80 ? 1.3f : estimatedHours > 40 ? 1.1f : 1.0f;
-        var teamFactor = Math.Max(0.1f, 1.0f - (teamSize / 10.0f)); // Smaller teams = higher risk
-        
-        return Math.Min(10.0f, baseComplexity * hoursMultiplier * teamFactor);
-    }
-
-    private async Task<float> CalculateResourceAvailabilityAsync(int departmentId)
-    {
-        // This would typically query the database for current resource utilization
-        var currentUtilization = await GetCurrentDepartmentWorkloadAsync(departmentId);
-        var capacity = await GetDepartmentCapacityAsync(departmentId);
-        
-        // Higher availability means lower utilization
-        var availability = Math.Max(0.1f, 1.0f - ((float)(currentUtilization / capacity)));
-        return availability * 10.0f; // Scale to 0-10
-    }
-
-    private async Task<float> CalculateStrategicAlignmentAsync(WorkRequest workRequest)
-    {
-        // This would check alignment with business strategy
-        var alignmentScore = 5.0f; // Default alignment score
-        
-        // Additional factors could include alignment with department goals, business vertical priorities, etc.
-        return alignmentScore;
-    }
-
-    private float CalculatePredictionConfidence(float score, int trainingDataCount)
-    {
-        // Confidence based on model performance and data quality
-        var baseConfidence = 0.8f;
-        var dataQualityFactor = Math.Min(1.0f, trainingDataCount / 1000.0f);
-        var scoreVarianceFactor = 1.0f - Math.Abs(score - 5.0f) / 10.0f; // Higher confidence for moderate scores
-        
-        return baseConfidence * dataQualityFactor * scoreVarianceFactor;
-    }
-
-    private WorkIntakeSystem.Core.Enums.PriorityLevel DeterminePriorityLevel(float score)
-    {
-        return score switch
-        {
-            >= 8.5f => WorkIntakeSystem.Core.Enums.PriorityLevel.Critical,
-            >= 7.0f => WorkIntakeSystem.Core.Enums.PriorityLevel.High,
-            >= 5.5f => WorkIntakeSystem.Core.Enums.PriorityLevel.Medium,
-            >= 4.0f => WorkIntakeSystem.Core.Enums.PriorityLevel.Low,
-            _ => WorkIntakeSystem.Core.Enums.PriorityLevel.Low
-        };
-    }
-
-    private string GeneratePriorityReasoning(float businessValue, float urgency, float complexity, float resourceAvailability, float strategicAlignment)
-    {
-        var factors = new List<string>();
-        
-        if (businessValue >= 8.0f) factors.Add("High business value");
-        if (urgency >= 8.0f) factors.Add("High urgency");
-        if (complexity >= 8.0f) factors.Add("High complexity");
-        if (resourceAvailability <= 3.0f) factors.Add("Limited resource availability");
-        if (strategicAlignment >= 8.0f) factors.Add("High strategic alignment");
-        
-        return factors.Count > 0 
-            ? $"Priority influenced by: {string.Join(", ", factors)}"
-            : "Standard priority based on balanced factors";
-    }
-
-    private float CalculateSyntheticPriority(float businessValue, float urgency, float complexity)
-    {
-        // Synthetic priority calculation for training data
-        return (businessValue * 0.4f + urgency * 0.3f + complexity * 0.3f) + (float)(new Random().NextDouble() - 0.5) * 2;
-    }
-
-    private async Task<List<PriorityTrainingData>> GetHistoricalWorkRequestsAsync()
-    {
-        // In a real implementation, this would query the database for historical work requests
-        // For now, we'll generate synthetic training data
-        var trainingData = new List<PriorityTrainingData>();
-        var random = new Random(42); // Fixed seed for reproducible results
-        
-        for (int i = 0; i < 1000; i++)
-        {
-            trainingData.Add(new PriorityTrainingData
-            {
-                Category = $"Category{(i % 5) + 1}",
-                Department = $"Department{(i % 8) + 1}",
-                BusinessVertical = $"Vertical{(i % 4) + 1}",
-                BusinessValue = random.Next(1, 11),
-                Urgency = random.Next(1, 11),
-                Complexity = random.Next(1, 11),
-                EstimatedHours = random.Next(8, 200),
-                ResourceAvailability = random.Next(1, 11),
-                StrategicAlignment = random.Next(1, 11),
-                Priority = CalculateSyntheticPriority(random.Next(1, 11), random.Next(1, 11), random.Next(1, 11))
-            });
-        }
-        
-        return trainingData;
-    }
-
-    private async Task<List<double>> GetHistoricalCapacityDataAsync(int departmentId)
-    {
-        // In a real implementation, this would query the database for historical capacity data
-        // For now, we'll generate synthetic data
-        var random = new Random(departmentId); // Use departmentId as seed for consistent results
-        var data = new List<double>();
-        
-        for (int i = 0; i < 30; i++) // Last 30 days
-        {
-            var baseUtilization = 0.7 + (random.NextDouble() * 0.3); // 70-100% range
-            var trend = Math.Sin(i * 0.1) * 0.1; // Add some trend
-            data.Add(Math.Max(0.1, Math.Min(1.0, baseUtilization + trend)));
-        }
-        
-        return data;
-    }
-
-    private double CalculateTrendFactor(List<double> historicalData)
-    {
-        if (historicalData.Count < 2) return 0.0;
-        
-        // Calculate linear trend using least squares
-        var n = historicalData.Count;
-        var sumX = n * (n - 1) / 2.0;
-        var sumY = historicalData.Sum();
-        var sumXY = historicalData.Select((y, i) => i * y).Sum();
-        var sumX2 = n * (n - 1) * (2 * n - 1) / 6.0;
-        
         var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
         return slope;
     }
 
-    private double CalculateWorkloadTrend(List<double> historicalData)
+    private double CalculateTrendPrediction(List<dynamic> historicalData, double trendSlope, DateTime predictionDate)
     {
-        if (historicalData.Count < 7) return 0.0;
+        if (!historicalData.Any()) return 0.5;
+
+        var averageValue = historicalData.Average(d => (double)d.Value);
+        var daysFromLastData = (predictionDate - historicalData.Max(d => d.Date)).Days;
         
-        // Calculate trend over the last week
-        var recentData = historicalData.TakeLast(7).ToList();
-        var olderData = historicalData.Skip(Math.Max(0, historicalData.Count - 14)).Take(7).ToList();
-        
-        if (olderData.Count < 7) return 0.0;
-        
-        var recentAvg = recentData.Average();
-        var olderAvg = olderData.Average();
-        
-        return (recentAvg - olderAvg) / olderAvg; // Percentage change
+        return Math.Max(0, Math.Min(1, averageValue + (trendSlope * daysFromLastData)));
     }
 
-    private double CalculateGrowthFactor(int departmentId, DateTime targetDate)
+    private async Task<int> PredictWorkRequestCountAsync(int departmentId, DateTime predictionDate)
     {
-        // This would consider department growth, new projects, seasonal factors, etc.
-        var monthsFromNow = (targetDate - DateTime.UtcNow).TotalDays / 30.0;
-        var baseGrowthRate = 0.02; // 2% monthly growth
-        var seasonalAdjustment = GetSeasonalityFactor(targetDate);
-        
-        return Math.Pow(1 + baseGrowthRate, monthsFromNow) * seasonalAdjustment;
+        var historicalCounts = await _context.WorkRequests
+            .Where(wr => wr.DepartmentId == departmentId && 
+                        wr.CreatedDate >= predictionDate.AddDays(-30) &&
+                        wr.CreatedDate <= predictionDate.AddDays(-1))
+            .GroupBy(wr => wr.CreatedDate.Date)
+            .Select(g => g.Count())
+            .ToListAsync();
+
+        return historicalCounts.Any() ? (int)historicalCounts.Average() : 5;
     }
 
-    private double CalculateCapacityConfidence(List<double> historicalData, double prediction)
+    private double CalculateComplexityMultiplier(WorkRequest workRequest)
     {
-        if (historicalData.Count < 5) return 0.5;
-        
-        // Calculate confidence based on data consistency and prediction reasonableness
-        var variance = historicalData.Select(x => Math.Pow(x - historicalData.Average(), 2)).Average();
-        var standardDeviation = Math.Sqrt(variance);
-        var coefficientOfVariation = standardDeviation / historicalData.Average();
-        
-        // Lower confidence for high variance or extreme predictions
-        var varianceFactor = Math.Max(0.1, 1.0 - coefficientOfVariation);
-        var predictionFactor = prediction >= 0.1 && prediction <= 1.0 ? 1.0 : 0.5;
-        
-        return Math.Min(0.95, varianceFactor * predictionFactor);
+        var multiplier = 1.0;
+
+        // Adjust based on business value (higher value = more complex)
+        multiplier += (double)workRequest.BusinessValue * 0.2;
+
+        // Adjust based on department (some departments handle more complex work)
+        if (workRequest.Department?.Name?.Contains("Engineering") == true)
+            multiplier += 0.3;
+
+        // Adjust based on business vertical
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            multiplier += 0.2;
+
+        return Math.Max(0.5, Math.Min(3.0, multiplier));
     }
 
-    private double CalculateWorkloadConfidence(int dataPoints, double trendMagnitude)
+    private double CalculateCompletionConfidence(int similarWorkRequestsCount, WorkRequest workRequest)
     {
-        // Confidence based on data availability and trend stability
-        var dataQualityFactor = Math.Min(1.0, dataPoints / 30.0); // More data = higher confidence
-        var trendStabilityFactor = Math.Max(0.1, 1.0 - trendMagnitude); // Stable trends = higher confidence
-        
-        return Math.Min(0.95, dataQualityFactor * trendStabilityFactor);
+        var confidence = 0.5; // Base confidence
+
+        // Increase confidence with more historical data
+        if (similarWorkRequestsCount >= 10)
+            confidence += 0.3;
+        else if (similarWorkRequestsCount >= 5)
+            confidence += 0.2;
+        else if (similarWorkRequestsCount >= 1)
+            confidence += 0.1;
+
+        // Adjust based on data quality
+        if (workRequest.BusinessValue > 0)
+            confidence += 0.1;
+
+        if (workRequest.TargetDate.HasValue)
+            confidence += 0.05;
+
+        return Math.Min(1.0, confidence);
     }
 
-    private List<string> GenerateCapacityRecommendations(double predictedUtilization, double currentUtilization, double capacity)
+    private string GenerateCompletionFactors(WorkRequest workRequest, double complexityMultiplier)
     {
-        var recommendations = new List<string>();
+        var factors = new List<string>();
+
+        if (complexityMultiplier > 1.5)
+            factors.Add("High complexity");
+
+        if (workRequest.BusinessValue > 0.7m)
+            factors.Add("High business value");
+
+        if (workRequest.Department?.CurrentUtilization > 80m)
+            factors.Add("Department capacity constraints");
+
+        if (workRequest.TargetDate.HasValue && (workRequest.TargetDate.Value - DateTime.UtcNow).Days <= 30)
+            factors.Add("Urgent timeline");
+
+        return string.Join(", ", factors);
+    }
+
+    private double CalculateCompletionTrendSlope(List<dynamic> historicalData)
+    {
+        if (historicalData.Count < 2) return 0;
+
+        var completionTimes = historicalData
+            .Select(h => (h.ActualDate - h.CreatedDate)?.TotalDays ?? 14)
+            .ToList();
+
+        var xValues = Enumerable.Range(0, completionTimes.Count).Select(i => (double)i).ToArray();
+        var yValues = completionTimes.ToArray();
+
+        var n = xValues.Length;
+        var sumX = xValues.Sum();
+        var sumY = yValues.Sum();
+        var sumXY = xValues.Zip(yValues, (x, y) => x * y).Sum();
+        var sumX2 = xValues.Select(x => x * x).Sum();
+
+        var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        return slope;
+    }
+
+    private double CalculateCompletionTrendPrediction(List<dynamic> historicalData, double trendSlope, DateTime predictionDate)
+    {
+        if (!historicalData.Any()) return 14.0;
+
+        var averageCompletionTime = historicalData
+            .Average(h => (h.ActualDate - h.CreatedDate)?.TotalDays ?? 14);
+
+        var daysFromLastData = (predictionDate - historicalData.Max(h => h.CreatedDate)).Days;
         
-        if (predictedUtilization >= 0.9)
+        return Math.Max(1, averageCompletionTime + (trendSlope * daysFromLastData));
+    }
+
+    private async Task<int> PredictCompletedWorkItemsAsync(int departmentId, DateTime predictionDate)
+    {
+        var historicalCompletions = await _context.WorkRequests
+            .Where(wr => wr.DepartmentId == departmentId && 
+                        wr.Status == WorkStatus.Completed &&
+                        wr.ActualDate >= predictionDate.AddDays(-30) &&
+                        wr.ActualDate <= predictionDate.AddDays(-1))
+            .GroupBy(wr => wr.ActualDate.Value.Date)
+            .Select(g => g.Count())
+            .ToListAsync();
+
+        return historicalCompletions.Any() ? (int)historicalCompletions.Average() : 3;
+    }
+
+    private async Task<decimal> CalculateEstimatedCostAsync(WorkRequest workRequest)
+    {
+        var baseCost = 1000m; // Base cost per work request
+
+        // Adjust based on complexity
+        var complexityMultiplier = CalculateComplexityMultiplier(workRequest);
+        baseCost *= (decimal)complexityMultiplier;
+
+        // Adjust based on department (some departments are more expensive)
+        if (workRequest.Department?.Name?.Contains("Engineering") == true)
+            baseCost *= 1.5m;
+
+        // Adjust based on business vertical
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            baseCost *= 1.3m;
+
+        return baseCost;
+    }
+
+    private async Task<decimal> CalculateEstimatedValueAsync(WorkRequest workRequest)
+    {
+        var baseValue = workRequest.BusinessValue * 10000m; // Convert to monetary value
+
+        // Adjust based on strategic importance
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            baseValue *= 1.5m;
+
+        // Adjust based on urgency
+        if (workRequest.TargetDate.HasValue && (workRequest.TargetDate.Value - DateTime.UtcNow).Days <= 30)
+            baseValue *= 1.2m;
+
+        return baseValue;
+    }
+
+    private string GenerateROIAnalysis(WorkRequest workRequest, decimal estimatedCost, decimal estimatedValue, decimal roi, decimal paybackPeriod)
+    {
+        var analysis = new List<string>();
+
+        analysis.Add($"Estimated cost: ${estimatedCost:N0}");
+        analysis.Add($"Estimated value: ${estimatedValue:N0}");
+        analysis.Add($"ROI: {roi:P0}");
+
+        if (roi > 0.5m)
+            analysis.Add("Excellent ROI - highly recommended");
+        else if (roi > 0.2m)
+            analysis.Add("Good ROI - recommended");
+        else if (roi > 0m)
+            analysis.Add("Positive ROI - consider if strategic");
+        else
+            analysis.Add("Negative ROI - reconsider unless strategic");
+
+        if (paybackPeriod <= 6)
+            analysis.Add("Quick payback period");
+        else if (paybackPeriod <= 12)
+            analysis.Add("Moderate payback period");
+        else
+            analysis.Add("Long payback period - consider alternatives");
+
+        return string.Join("; ", analysis);
+    }
+
+    private string CalculateBusinessValueTrend(List<dynamic> monthlyData, DateTime date)
+    {
+        var currentData = monthlyData.FirstOrDefault(d => d.Date == date);
+        var previousData = monthlyData.FirstOrDefault(d => d.Date < date);
+
+        if (currentData == null || previousData == null)
+            return "Stable";
+
+        var change = currentData.AverageBusinessValue - previousData.AverageBusinessValue;
+        var percentageChange = change / previousData.AverageBusinessValue;
+
+        return percentageChange switch
         {
-            recommendations.Add("Consider resource allocation from other departments");
-            recommendations.Add("Implement overtime or temporary staffing");
-            recommendations.Add("Review and prioritize work requests");
-        }
-        else if (predictedUtilization >= 0.8)
-        {
-            recommendations.Add("Monitor workload closely");
-            recommendations.Add("Consider cross-training team members");
-            recommendations.Add("Optimize work processes");
-        }
-        else if (predictedUtilization <= 0.5)
-        {
-            recommendations.Add("Consider taking on additional work");
-            recommendations.Add("Explore cross-departmental opportunities");
-            recommendations.Add("Focus on process improvement initiatives");
-        }
-        
-        return recommendations;
+            > 0.1 => "Increasing",
+            < -0.1 => "Decreasing",
+            _ => "Stable"
+        };
     }
-}
 
-public class PriorityTrainingData
-{
-    public string Category { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
-    public string BusinessVertical { get; set; } = string.Empty;
-    public float BusinessValue { get; set; }
-    public float Urgency { get; set; }
-    public float Complexity { get; set; }
-    public float EstimatedHours { get; set; }
-    public float ResourceAvailability { get; set; }
-    public float StrategicAlignment { get; set; }
-    public float Priority { get; set; }
-}
+    private async Task<double> CalculateComplexityRiskAsync(WorkRequest workRequest)
+    {
+        var risk = 0.0;
 
-public class PriorityPredictionOutput
-{
-    [ColumnName("Score")]
-    public float PredictedPriority { get; set; }
+        // High business value often indicates complexity
+        risk += (double)workRequest.BusinessValue * 0.3;
+
+        // Strategic importance can indicate complexity
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            risk += 0.2;
+
+        // Engineering departments often handle complex work
+        if (workRequest.Department?.Name?.Contains("Engineering") == true)
+            risk += 0.2;
+
+        return Math.Min(1.0, risk);
+    }
+
+    private async Task<double> CalculateResourceRiskAsync(WorkRequest workRequest)
+    {
+        var risk = 0.0;
+
+        // High department utilization indicates resource constraints
+        if (workRequest.Department?.CurrentUtilization > 80m)
+            risk += 0.4;
+        else if (workRequest.Department?.CurrentUtilization > 60m)
+            risk += 0.2;
+
+        // Complex work requires more resources
+        var complexityMultiplier = CalculateComplexityMultiplier(workRequest);
+        risk += (complexityMultiplier - 1.0) * 0.3;
+
+        return Math.Min(1.0, risk);
+    }
+
+    private async Task<double> CalculateTimelineRiskAsync(WorkRequest workRequest)
+    {
+        var risk = 0.0;
+
+        if (workRequest.TargetDate.HasValue)
+        {
+            var daysUntilTarget = (workRequest.TargetDate.Value - DateTime.UtcNow).Days;
+            
+            if (daysUntilTarget <= 7)
+                risk += 0.5;
+            else if (daysUntilTarget <= 30)
+                risk += 0.3;
+            else if (daysUntilTarget <= 90)
+                risk += 0.1;
+        }
+
+        // Complex work takes longer
+        var complexityMultiplier = CalculateComplexityMultiplier(workRequest);
+        risk += (complexityMultiplier - 1.0) * 0.2;
+
+        return Math.Min(1.0, risk);
+    }
+
+    private async Task<double> CalculateDependencyRiskAsync(WorkRequest workRequest)
+    {
+        // Simplified dependency risk calculation
+        // In a real implementation, this would analyze actual dependencies
+        var risk = 0.0;
+
+        // High business value work often has dependencies
+        if (workRequest.BusinessValue > 0.7m)
+            risk += 0.3;
+
+        // Strategic work often has external dependencies
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            risk += 0.2;
+
+        return Math.Min(1.0, risk);
+    }
+
+    private async Task<double> CalculateBusinessImpactRiskAsync(WorkRequest workRequest)
+    {
+        var risk = 0.0;
+
+        // High business value means high impact if it fails
+        risk += (double)workRequest.BusinessValue * 0.4;
+
+        // Strategic importance increases impact
+        if (workRequest.BusinessVertical?.StrategicImportance > 0.8m)
+            risk += 0.3;
+
+        return Math.Min(1.0, risk);
+    }
+
+    private string DetermineRiskLevel(double riskScore)
+    {
+        return riskScore switch
+        {
+            >= 0.7 => "High",
+            >= 0.4 => "Medium",
+            >= 0.2 => "Low",
+            _ => "Minimal"
+        };
+    }
+
+    private List<string> GenerateMitigationStrategies(Dictionary<string, double> riskFactors, string riskLevel)
+    {
+        var strategies = new List<string>();
+
+        if (riskLevel == "High")
+        {
+            strategies.Add("Increase monitoring and oversight");
+            strategies.Add("Allocate additional resources");
+            strategies.Add("Develop contingency plans");
+        }
+        else if (riskLevel == "Medium")
+        {
+            strategies.Add("Regular status updates");
+            strategies.Add("Monitor key risk factors");
+        }
+        else
+        {
+            strategies.Add("Standard project management practices");
+        }
+
+        // Add specific strategies based on risk factors
+        if (riskFactors.ContainsKey("Resource Availability") && riskFactors["Resource Availability"] > 0.5)
+            strategies.Add("Consider resource reallocation");
+
+        if (riskFactors.ContainsKey("Timeline") && riskFactors["Timeline"] > 0.5)
+            strategies.Add("Review timeline and milestones");
+
+        return strategies;
+    }
+
+    private double CalculateOverdueRisk(List<WorkRequest> workRequests)
+    {
+        var overdueCount = workRequests.Count(wr => 
+            wr.TargetDate.HasValue && wr.TargetDate.Value < DateTime.UtcNow);
+        
+        return workRequests.Any() ? (double)overdueCount / workRequests.Count : 0;
+    }
+
+    private double CalculateCapacityRisk(int departmentId)
+    {
+        var department = _context.Departments.FirstOrDefault(d => d.Id == departmentId);
+        if (department == null) return 0;
+
+        return department.CurrentUtilization > 80m ? 0.8 : department.CurrentUtilization > 60m ? 0.5 : 0.2;
+    }
+
+    private double CalculateComplexityRisk(List<WorkRequest> workRequests)
+    {
+        if (!workRequests.Any()) return 0;
+
+        var highComplexityCount = workRequests.Count(wr => wr.BusinessValue > 0.7m);
+        return (double)highComplexityCount / workRequests.Count;
+    }
+
+    private double CalculateDependencyRisk(List<WorkRequest> workRequests)
+    {
+        if (!workRequests.Any()) return 0;
+
+        var highDependencyCount = workRequests.Count(wr => 
+            wr.BusinessValue > 0.7m || wr.BusinessVertical?.StrategicImportance > 0.8m);
+        
+        return (double)highDependencyCount / workRequests.Count;
+    }
+
+    private PredictiveInsight? GeneratePriorityInsight(List<WorkRequest> workRequests)
+    {
+        var averagePriority = workRequests.Average(wr => wr.Priority);
+        var highPriorityCount = workRequests.Count(wr => wr.Priority > 0.7m);
+
+        if (highPriorityCount > workRequests.Count * 0.3)
+        {
+            return new PredictiveInsight
+            {
+                InsightType = "Priority Distribution",
+                Description = $"High number of high-priority work requests ({highPriorityCount}/{workRequests.Count})",
+                Confidence = 0.8m,
+                PredictedDate = DateTime.UtcNow.AddDays(7),
+                Recommendation = "Consider reprioritizing work to balance workload"
+            };
+        }
+
+        return null;
+    }
+
+    private PredictiveInsight? GenerateCapacityInsight(List<WorkRequest> workRequests)
+    {
+        var departments = workRequests.Select(wr => wr.DepartmentId).Distinct();
+        var overloadedDepartments = new List<int>();
+
+        foreach (var deptId in departments)
+        {
+            var dept = _context.Departments.FirstOrDefault(d => d.Id == deptId);
+            if (dept?.CurrentUtilization > 80m)
+                overloadedDepartments.Add(deptId);
+        }
+
+        if (overloadedDepartments.Any())
+        {
+            return new PredictiveInsight
+            {
+                InsightType = "Capacity Management",
+                Description = $"{overloadedDepartments.Count} departments are at high capacity utilization",
+                Confidence = 0.9m,
+                PredictedDate = DateTime.UtcNow.AddDays(14),
+                Recommendation = "Consider resource reallocation or workload redistribution"
+            };
+        }
+
+        return null;
+    }
+
+    private PredictiveInsight? GenerateTrendInsight(List<WorkRequest> workRequests)
+    {
+        var recentWorkRequests = workRequests.Where(wr => wr.CreatedDate >= DateTime.UtcNow.AddDays(-30));
+        var olderWorkRequests = workRequests.Where(wr => wr.CreatedDate < DateTime.UtcNow.AddDays(-30) && wr.CreatedDate >= DateTime.UtcNow.AddDays(-60));
+
+        if (recentWorkRequests.Any() && olderWorkRequests.Any())
+        {
+            var recentAverage = recentWorkRequests.Average(wr => wr.BusinessValue);
+            var olderAverage = olderWorkRequests.Average(wr => wr.BusinessValue);
+            var change = recentAverage - olderAverage;
+
+            if (Math.Abs(change) > 0.1)
+            {
+                return new PredictiveInsight
+                {
+                    InsightType = "Business Value Trend",
+                    Description = $"Business value is {(change > 0 ? "increasing" : "decreasing")} by {Math.Abs(change):P0}",
+                    Confidence = 0.7m,
+                    PredictedDate = DateTime.UtcNow.AddDays(30),
+                    Recommendation = change > 0 ? "Continue focusing on high-value work" : "Review business value assessment criteria"
+                };
+            }
+        }
+
+        return null;
+    }
 } 

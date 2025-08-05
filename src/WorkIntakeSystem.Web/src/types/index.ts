@@ -564,3 +564,193 @@ export interface PriorityRecommendation {
   rationale: string;
   generatedDate: string;
 }
+
+// Advanced Analytics Types
+export interface PriorityPrediction {
+  workRequestId: number;
+  predictedPriority: number;
+  predictedLevel: PriorityLevel;
+  confidence: number;
+  reasoning: string;
+  predictedDate: string;
+}
+
+export interface ResourceForecast {
+  departmentId: number;
+  targetDate: string;
+  predictedCapacity: number;
+  predictedDemand: number;
+  utilizationRate: number;
+  recommendation: string;
+}
+
+export interface CompletionPrediction {
+  workRequestId: number;
+  predictedCompletionDate: string;
+  confidence: number;
+  factors: string;
+}
+
+export interface BusinessValueROI {
+  workRequestId: number;
+  estimatedCost: number;
+  estimatedValue: number;
+  roi: number;
+  paybackPeriod: number;
+  analysis: string;
+}
+
+export interface RiskAssessment {
+  workRequestId: number;
+  riskScore: number;
+  riskLevel: string;
+  riskFactors: string[];
+  mitigationStrategy: string;
+}
+
+export interface PredictiveInsight {
+  insightType: string;
+  description: string;
+  confidence: number;
+  predictedDate: string;
+  recommendation: string;
+}
+
+export interface WorkloadPrediction {
+  departmentId: number;
+  targetDate: string;
+  predictedUtilization: number;
+  predictedWorkItems: number;
+  trend: string;
+}
+
+export interface CapacityPrediction {
+  departmentId: number;
+  targetDate: string;
+  predictedCapacity: number;
+  currentUtilization: number;
+  recommendation: string;
+}
+
+export interface PriorityTrend {
+  departmentId: number;
+  date: string;
+  averagePriority: number;
+  workRequestCount: number;
+  trend: string;
+}
+
+export interface CompletionTrend {
+  departmentId: number;
+  date: string;
+  averageCompletionTime: number;
+  completedWorkItems: number;
+  trend: string;
+}
+
+export interface BusinessValueTrend {
+  businessVerticalId: number;
+  date: string;
+  averageBusinessValue: number;
+  totalROI: number;
+  workRequestCount: number;
+  trend: string;
+}
+
+export interface RiskIndicator {
+  departmentId: number;
+  riskType: string;
+  riskScore: number;
+  riskLevel: string;
+  description: string;
+  mitigationAction: string;
+}
+
+// Analytics Dashboard Types
+export interface ExecutiveDashboard {
+  priorityPredictions: PriorityPredictionSummary;
+  resourceForecasts: ResourceForecastSummary;
+  riskAssessments: RiskAssessmentSummary;
+  businessValueTrends: BusinessValueTrendSummary;
+  completionPredictions: CompletionPredictionSummary;
+}
+
+export interface PriorityPredictionSummary {
+  totalPredictions: number;
+  averagePredictedPriority: number;
+  trend: string;
+}
+
+export interface ResourceForecastSummary {
+  totalDepartments: number;
+  averageUtilization: number;
+  capacityGap: number;
+}
+
+export interface RiskAssessmentSummary {
+  totalAssessments: number;
+  highRiskCount: number;
+  averageRiskScore: number;
+}
+
+export interface BusinessValueTrendSummary {
+  totalTrends: number;
+  averageBusinessValue: number;
+  trend: string;
+}
+
+export interface CompletionPredictionSummary {
+  totalPredictions: number;
+  averagePredictedDays: number;
+  onTimeRate: number;
+}
+
+export interface DepartmentDashboard {
+  priorityTrends: PriorityTrend[];
+  resourceForecast: ResourceForecast;
+  capacityPrediction: CapacityPrediction;
+  completionTrends: CompletionTrend[];
+  workloadPrediction: WorkloadPrediction;
+  riskIndicators: RiskIndicator[];
+}
+
+export interface ProjectDashboard {
+  priorityPrediction: PriorityPrediction;
+  completionPrediction: CompletionPrediction;
+  riskAssessment: RiskAssessment;
+  roiAnalysis: BusinessValueROI;
+}
+
+// Analytics Summary Types
+export interface PrioritySummary {
+  totalWorkRequests: number;
+  averagePriority: number;
+  priorityDistribution: PriorityDistribution;
+  highPriorityCount: number;
+}
+
+export interface PriorityDistribution {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface CompletionSummary {
+  completedWorkRequests: number;
+  averageCompletionTime: number;
+  completionRate: number;
+  onTimeCompletionRate: number;
+}
+
+export interface RiskSummary {
+  totalRiskAssessments: number;
+  highRiskCount: number;
+  averageRiskScore: number;
+  riskTrends: RiskTrends;
+}
+
+export interface RiskTrends {
+  trend: string;
+  change: number;
+}

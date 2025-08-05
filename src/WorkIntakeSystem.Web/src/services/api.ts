@@ -24,7 +24,25 @@ import {
   PriorityTrendAnalysis,
   PriorityEffectivenessMetric,
   PriorityRecommendation,
-  PriorityConfigValidationResult
+  PriorityConfigValidationResult,
+  PriorityPrediction,
+  ResourceForecast,
+  CompletionPrediction,
+  BusinessValueROI,
+  RiskAssessment,
+  PredictiveInsight,
+  WorkloadPrediction,
+  CapacityPrediction,
+  PriorityTrend,
+  CompletionTrend,
+  BusinessValueTrend,
+  RiskIndicator,
+  ExecutiveDashboard,
+  DepartmentDashboard,
+  ProjectDashboard,
+  PrioritySummary,
+  CompletionSummary,
+  RiskSummary
 } from '../types';
 
 interface LoginRequest {
@@ -444,6 +462,97 @@ class ApiService {
 
   async validatePriorityConfiguration(configuration: PriorityConfiguration): Promise<PriorityConfigValidationResult> {
     const response = await this.api.post<PriorityConfigValidationResult>('/priorityconfiguration/validate', configuration);
+    return response.data;
+  }
+
+  // Advanced Analytics API
+  async predictPriority(workRequestId: number): Promise<PriorityPrediction> {
+    const response = await this.api.get<PriorityPrediction>(`/advancedanalytics/predict/priority/${workRequestId}`);
+    return response.data;
+  }
+
+  async predictPriorityTrends(departmentId: number, targetDate: string): Promise<PriorityTrend[]> {
+    const response = await this.api.get<PriorityTrend[]>(`/advancedanalytics/predict/priority-trends/${departmentId}?targetDate=${targetDate}`);
+    return response.data;
+  }
+
+  async forecastResourceNeeds(departmentId: number, targetDate: string): Promise<ResourceForecast> {
+    const response = await this.api.get<ResourceForecast>(`/advancedanalytics/forecast/resources/${departmentId}?targetDate=${targetDate}`);
+    return response.data;
+  }
+
+  async predictCapacityUtilization(departmentId: number, targetDate: string): Promise<CapacityPrediction> {
+    const response = await this.api.get<CapacityPrediction>(`/advancedanalytics/predict/capacity/${departmentId}?targetDate=${targetDate}`);
+    return response.data;
+  }
+
+  async predictCompletionTime(workRequestId: number): Promise<CompletionPrediction> {
+    const response = await this.api.get<CompletionPrediction>(`/advancedanalytics/predict/completion/${workRequestId}`);
+    return response.data;
+  }
+
+  async predictCompletionTrends(departmentId: number, targetDate: string): Promise<CompletionTrend[]> {
+    const response = await this.api.get<CompletionTrend[]>(`/advancedanalytics/predict/completion-trends/${departmentId}?targetDate=${targetDate}`);
+    return response.data;
+  }
+
+  async calculateROI(workRequestId: number): Promise<BusinessValueROI> {
+    const response = await this.api.get<BusinessValueROI>(`/advancedanalytics/analyze/roi/${workRequestId}`);
+    return response.data;
+  }
+
+  async analyzeBusinessValueTrends(businessVerticalId: number, fromDate: string, toDate: string): Promise<BusinessValueTrend[]> {
+    const response = await this.api.get<BusinessValueTrend[]>(`/advancedanalytics/analyze/business-value-trends/${businessVerticalId}?fromDate=${fromDate}&toDate=${toDate}`);
+    return response.data;
+  }
+
+  async assessProjectRisk(workRequestId: number): Promise<RiskAssessment> {
+    const response = await this.api.get<RiskAssessment>(`/advancedanalytics/assess/risk/${workRequestId}`);
+    return response.data;
+  }
+
+  async getRiskIndicators(departmentId: number): Promise<RiskIndicator[]> {
+    const response = await this.api.get<RiskIndicator[]>(`/advancedanalytics/assess/risk-indicators/${departmentId}`);
+    return response.data;
+  }
+
+  async getPredictiveInsights(businessVerticalId: number): Promise<PredictiveInsight[]> {
+    const response = await this.api.get<PredictiveInsight[]>(`/advancedanalytics/insights/predictive/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async predictWorkload(departmentId: number, targetDate: string): Promise<WorkloadPrediction> {
+    const response = await this.api.get<WorkloadPrediction>(`/advancedanalytics/predict/workload/${departmentId}?targetDate=${targetDate}`);
+    return response.data;
+  }
+
+  async getExecutiveDashboard(startDate: string, endDate: string): Promise<ExecutiveDashboard> {
+    const response = await this.api.get<ExecutiveDashboard>(`/advancedanalytics/dashboard/executive?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  }
+
+  async getDepartmentDashboard(departmentId: number, startDate: string, endDate: string): Promise<DepartmentDashboard> {
+    const response = await this.api.get<DepartmentDashboard>(`/advancedanalytics/dashboard/department/${departmentId}?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  }
+
+  async getProjectDashboard(workRequestId: number, startDate: string, endDate: string): Promise<ProjectDashboard> {
+    const response = await this.api.get<ProjectDashboard>(`/advancedanalytics/dashboard/project/${workRequestId}?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  }
+
+  async getPrioritySummary(fromDate: string, toDate: string): Promise<PrioritySummary> {
+    const response = await this.api.get<PrioritySummary>(`/advancedanalytics/summary/priority?fromDate=${fromDate}&toDate=${toDate}`);
+    return response.data;
+  }
+
+  async getCompletionSummary(fromDate: string, toDate: string): Promise<CompletionSummary> {
+    const response = await this.api.get<CompletionSummary>(`/advancedanalytics/summary/completion?fromDate=${fromDate}&toDate=${toDate}`);
+    return response.data;
+  }
+
+  async getRiskSummary(fromDate: string, toDate: string): Promise<RiskSummary> {
+    const response = await this.api.get<RiskSummary>(`/advancedanalytics/summary/risk?fromDate=${fromDate}&toDate=${toDate}`);
     return response.data;
   }
 }
