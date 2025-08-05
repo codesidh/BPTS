@@ -14,7 +14,17 @@ import {
   WorkflowValidationResult,
   WorkflowMetrics,
   WorkflowBottleneckAnalysis,
-  SLAStatus
+  SLAStatus,
+  PriorityConfiguration,
+  PriorityAlgorithmConfig,
+  TimeDecayConfig,
+  BusinessValueWeightConfig,
+  CapacityAdjustmentConfig,
+  PriorityPreviewResult,
+  PriorityTrendAnalysis,
+  PriorityEffectivenessMetric,
+  PriorityRecommendation,
+  PriorityConfigValidationResult
 } from '../types';
 
 interface LoginRequest {
@@ -334,6 +344,107 @@ class ApiService {
   async delete<T = any>(url: string): Promise<{ data?: T }> {
     const response = await this.api.delete<T>(url);
     return { data: response.data };
+  }
+
+  // Priority Configuration API
+  async getPriorityConfigurations(): Promise<PriorityConfiguration[]> {
+    const response = await this.api.get<PriorityConfiguration[]>('/priorityconfiguration');
+    return response.data;
+  }
+
+  async getPriorityConfigurationsByBusinessVertical(businessVerticalId: number): Promise<PriorityConfiguration[]> {
+    const response = await this.api.get<PriorityConfiguration[]>(`/priorityconfiguration/business-vertical/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async getPriorityConfiguration(configurationId: number): Promise<PriorityConfiguration> {
+    const response = await this.api.get<PriorityConfiguration>(`/priorityconfiguration/${configurationId}`);
+    return response.data;
+  }
+
+  async createPriorityConfiguration(configuration: Omit<PriorityConfiguration, 'id'>): Promise<PriorityConfiguration> {
+    const response = await this.api.post<PriorityConfiguration>('/priorityconfiguration', configuration);
+    return response.data;
+  }
+
+  async updatePriorityConfiguration(configurationId: number, configuration: PriorityConfiguration): Promise<PriorityConfiguration> {
+    const response = await this.api.put<PriorityConfiguration>(`/priorityconfiguration/${configurationId}`, configuration);
+    return response.data;
+  }
+
+  async deletePriorityConfiguration(configurationId: number): Promise<void> {
+    await this.api.delete(`/priorityconfiguration/${configurationId}`);
+  }
+
+  async getPriorityAlgorithmConfig(businessVerticalId: number): Promise<PriorityAlgorithmConfig> {
+    const response = await this.api.get<PriorityAlgorithmConfig>(`/priorityconfiguration/algorithm/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async setPriorityAlgorithmConfig(businessVerticalId: number, config: PriorityAlgorithmConfig): Promise<void> {
+    await this.api.post(`/priorityconfiguration/algorithm/${businessVerticalId}`, config);
+  }
+
+  async testPriorityCalculation(businessVerticalId: number, testRequest: WorkRequest): Promise<{ priorityScore: number; testRequest: WorkRequest }> {
+    const response = await this.api.post<{ priorityScore: number; testRequest: WorkRequest }>(`/priorityconfiguration/test-calculation/${businessVerticalId}`, testRequest);
+    return response.data;
+  }
+
+  async previewPriorityChanges(businessVerticalId: number, newConfig: PriorityAlgorithmConfig): Promise<PriorityPreviewResult> {
+    const response = await this.api.post<PriorityPreviewResult>(`/priorityconfiguration/preview/${businessVerticalId}`, newConfig);
+    return response.data;
+  }
+
+  async getTimeDecayConfig(businessVerticalId: number): Promise<TimeDecayConfig> {
+    const response = await this.api.get<TimeDecayConfig>(`/priorityconfiguration/time-decay/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async setTimeDecayConfig(businessVerticalId: number, config: TimeDecayConfig): Promise<void> {
+    await this.api.post(`/priorityconfiguration/time-decay/${businessVerticalId}`, config);
+  }
+
+  async calculateTimeDecayFactor(businessVerticalId: number, createdDate: string): Promise<any> {
+    const response = await this.api.post(`/priorityconfiguration/time-decay/${businessVerticalId}/calculate`, createdDate);
+    return response.data;
+  }
+
+  async getBusinessValueWeights(businessVerticalId: number): Promise<BusinessValueWeightConfig> {
+    const response = await this.api.get<BusinessValueWeightConfig>(`/priorityconfiguration/business-value-weights/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async setBusinessValueWeights(businessVerticalId: number, config: BusinessValueWeightConfig): Promise<void> {
+    await this.api.post(`/priorityconfiguration/business-value-weights/${businessVerticalId}`, config);
+  }
+
+  async getCapacityAdjustmentConfig(businessVerticalId: number): Promise<CapacityAdjustmentConfig> {
+    const response = await this.api.get<CapacityAdjustmentConfig>(`/priorityconfiguration/capacity-adjustment/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async setCapacityAdjustmentConfig(businessVerticalId: number, config: CapacityAdjustmentConfig): Promise<void> {
+    await this.api.post(`/priorityconfiguration/capacity-adjustment/${businessVerticalId}`, config);
+  }
+
+  async getPriorityTrends(businessVerticalId: number, fromDate: string, toDate: string): Promise<PriorityTrendAnalysis> {
+    const response = await this.api.get<PriorityTrendAnalysis>(`/priorityconfiguration/analytics/trends/${businessVerticalId}?fromDate=${fromDate}&toDate=${toDate}`);
+    return response.data;
+  }
+
+  async getPriorityEffectivenessMetrics(businessVerticalId: number): Promise<PriorityEffectivenessMetric[]> {
+    const response = await this.api.get<PriorityEffectivenessMetric[]>(`/priorityconfiguration/analytics/effectiveness/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async getPriorityRecommendations(businessVerticalId: number): Promise<PriorityRecommendation> {
+    const response = await this.api.get<PriorityRecommendation>(`/priorityconfiguration/analytics/recommendations/${businessVerticalId}`);
+    return response.data;
+  }
+
+  async validatePriorityConfiguration(configuration: PriorityConfiguration): Promise<PriorityConfigValidationResult> {
+    const response = await this.api.post<PriorityConfigValidationResult>('/priorityconfiguration/validate', configuration);
+    return response.data;
   }
 }
 

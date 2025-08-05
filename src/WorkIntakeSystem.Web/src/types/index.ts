@@ -389,3 +389,178 @@ export interface ApprovalResult {
   nextStage?: WorkflowStage;
   processedDate: string;
 }
+
+// Priority Configuration Types
+export interface PriorityConfiguration {
+  id: number;
+  businessVerticalId: number;
+  priorityName: string;
+  minScore: number;
+  maxScore: number;
+  colorCode: string;
+  iconClass: string;
+  description: string;
+  isActive: boolean;
+  escalationRules: string; // JSON
+  timeDecayConfiguration: string; // JSON
+  businessValueWeights: string; // JSON
+  capacityFactors: string; // JSON
+  autoAdjustmentRules: string; // JSON
+  slaHours?: number;
+  escalationThresholdHours?: number;
+  notificationSettings: string; // JSON
+  businessVertical?: BusinessVertical;
+  createdDate: string;
+  modifiedDate: string;
+  createdBy: string;
+  modifiedBy: string;
+}
+
+export interface PriorityAlgorithmConfig {
+  algorithmType: 'Enhanced' | 'Simple' | 'Custom';
+  baseWeight: number;
+  timeDecayWeight: number;
+  businessValueWeight: number;
+  capacityAdjustmentWeight: number;
+  customWeights: Record<string, number>;
+  isActive: boolean;
+  lastModified: string;
+  modifiedBy: string;
+}
+
+export interface TimeDecayConfig {
+  isEnabled: boolean;
+  maxMultiplier: number;
+  decayRate: number;
+  startDelayDays: number;
+  decayFunction: 'Linear' | 'Logarithmic' | 'Exponential';
+  functionParameters: Record<string, number>;
+}
+
+export interface BusinessValueWeightConfig {
+  baseMultiplier: number;
+  categoryWeights: Record<string, number>;
+  verticalWeights: Record<string, number>;
+  strategicAlignmentMultiplier: number;
+  roiThreshold: number;
+  roiBonusMultiplier: number;
+}
+
+export interface CapacityAdjustmentConfig {
+  isEnabled: boolean;
+  maxAdjustmentFactor: number;
+  minAdjustmentFactor: number;
+  optimalUtilizationPercentage: number;
+  adjustmentCurve: 'Linear' | 'Sigmoid' | 'Step';
+  departmentSpecificFactors: Record<string, number>;
+}
+
+export interface AutoAdjustmentRulesConfig {
+  isEnabled: boolean;
+  triggerIntervalHours: number;
+  priorityChangeThreshold: number;
+  rules: AutoAdjustmentRule[];
+  lastProcessed: string;
+  notifyOnAdjustment: boolean;
+}
+
+export interface AutoAdjustmentRule {
+  ruleName: string;
+  condition: string; // JSON condition script
+  action: string; // JSON action script
+  isActive: boolean;
+  priority: number;
+}
+
+export interface EscalationRulesConfig {
+  isEnabled: boolean;
+  rules: EscalationRule[];
+  defaultSLAHours: number;
+  escalationRecipients: string[];
+  notificationTemplate: string;
+}
+
+export interface EscalationRule {
+  ruleName: string;
+  triggerAfterHours: number;
+  condition: string; // JSON condition
+  escalationAction: string; // Email, SMS, CreateTask
+  recipients: string[];
+  isActive: boolean;
+}
+
+export interface PriorityEscalation {
+  workRequestId: number;
+  workRequestTitle: string;
+  createdDate: string;
+  escalationDate: string;
+  escalationReason: string;
+  currentStatus: string;
+  currentPriority: number;
+  assignedTo: string;
+}
+
+export interface PriorityConfigValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  recommendations: string[];
+  validationDate: string;
+}
+
+export interface PriorityPreviewResult {
+  totalWorkRequests: number;
+  affectedWorkRequests: number;
+  changes: PriorityChangePreview[];
+  distributionComparison: PriorityDistributionComparison;
+  previewGeneratedDate: string;
+}
+
+export interface PriorityChangePreview {
+  workRequestId: number;
+  title: string;
+  currentPriority: number;
+  newPriority: number;
+  change: number;
+  changeReason: string;
+}
+
+export interface PriorityDistributionComparison {
+  currentDistribution: Record<string, number>;
+  newDistribution: Record<string, number>;
+  changes: Record<string, number>;
+}
+
+export interface PriorityTrendAnalysis {
+  trendData: PriorityTrendPoint[];
+  averagePriorityScore: number;
+  priorityVolatility: number;
+  insights: string[];
+  analysisDate: string;
+}
+
+export interface PriorityTrendPoint {
+  date: string;
+  averagePriority: number;
+  totalWorkRequests: number;
+  priorityDistribution: Record<string, number>;
+}
+
+export interface PriorityEffectivenessMetric {
+  metricName: string;
+  value: number;
+  unit: string;
+  trend: 'Improving' | 'Stable' | 'Declining';
+  description: string;
+  lastCalculated: string;
+}
+
+export interface PriorityRecommendation {
+  recommendationType: string;
+  title: string;
+  description: string;
+  confidenceScore: number;
+  suggestedChanges: Record<string, any>;
+  rationale: string;
+  generatedDate: string;
+}

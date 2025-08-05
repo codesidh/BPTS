@@ -15,6 +15,7 @@ import ExternalIntegrations from './pages/ExternalIntegrations';
 import ConfigurationManagement from './pages/ConfigurationManagement';
 import EventAuditTrail from './pages/EventAuditTrail';
 import WorkflowDesigner from './pages/WorkflowDesigner';
+import PriorityConfiguration from './pages/PriorityConfiguration';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -168,6 +169,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             <WorkflowDesigner />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/priority-configuration" element={
+        <ProtectedRoute>
+          <Layout>
+            <PriorityConfiguration />
           </Layout>
         </ProtectedRoute>
       } />
