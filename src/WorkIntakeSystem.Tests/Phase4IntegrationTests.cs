@@ -225,29 +225,19 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
     public async Task AdvancedAnalytics_PredictWorkRequestPriority_ReturnsPrediction()
     {
         // Arrange
-        var workRequest = new WorkRequest
-        {
-            Id = 123,
-            Title = "Test Work Request",
-            Description = "Test description",
-            Category = WorkCategory.Project,
-            DepartmentId = 1
-        };
-
-        var json = JsonSerializer.Serialize(workRequest);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var workRequestId = 123;
 
         // Act
-        var response = await _client.PostAsync("/api/advancedanalytics/predict/priority", content);
+        var response = await _client.GetAsync($"/api/advancedanalytics/predict/priority/{workRequestId}");
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
-        Assert.True(result.TryGetProperty("Prediction", out var prediction));
-        Assert.True(prediction.TryGetProperty("PredictedScore", out var score));
-        Assert.True(score.GetDouble() > 0);
+        Assert.True(result.TryGetProperty("WorkRequestId", out var workRequestIdProp));
+        Assert.Equal(workRequestId, workRequestIdProp.GetInt32());
+        Assert.True(result.TryGetProperty("PredictedPriority", out var priority));
+        Assert.True(priority.GetDecimal() > 0);
     }
 
     [Fact]
@@ -264,55 +254,43 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
-        Assert.True(result.TryGetProperty("Dashboard", out var dashboard));
-        Assert.True(dashboard.TryGetProperty("TotalWorkRequests", out var totalRequests));
+        Assert.True(result.TryGetProperty("TotalWorkRequests", out var totalRequests));
         Assert.True(totalRequests.GetInt32() >= 0);
     }
 
     [Fact]
-    public async Task AdvancedAnalytics_IdentifyWorkflowBottlenecks_ReturnsBottlenecks()
+    public async Task AdvancedAnalytics_GetRiskIndicators_ReturnsRiskIndicators()
     {
+        // Arrange
+        var departmentId = 1;
+
         // Act
-        var response = await _client.GetAsync("/api/advancedanalytics/workflow/bottlenecks");
+        var response = await _client.GetAsync($"/api/advancedanalytics/assess/risk-indicators/{departmentId}");
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
-        Assert.True(result.TryGetProperty("Bottlenecks", out var bottlenecks));
-        Assert.True(bottlenecks.ValueKind == JsonValueKind.Array);
+        Assert.True(result.ValueKind == JsonValueKind.Array);
     }
 
     [Fact]
-    public async Task AdvancedAnalytics_BuildCustomReport_ReturnsReport()
+    public async Task AdvancedAnalytics_PredictWorkload_ReturnsWorkloadPrediction()
     {
         // Arrange
-        var request = new
-        {
-            ReportName = "Test Custom Report",
-            DataSources = new[] { "WorkRequests", "Departments" },
-            Filters = new object[] { },
-            Columns = new object[] { },
-            Groupings = new object[] { },
-            Charts = new object[] { }
-        };
-
-        var json = JsonSerializer.Serialize(request);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var departmentId = 1;
+        var targetDate = DateTime.UtcNow.AddDays(30);
 
         // Act
-        var response = await _client.PostAsync("/api/advancedanalytics/reports/custom", content);
+        var response = await _client.GetAsync($"/api/advancedanalytics/predict/workload/{departmentId}?targetDate={targetDate:yyyy-MM-dd}");
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
-        Assert.True(result.TryGetProperty("Report", out var report));
-        Assert.True(report.TryGetProperty("Name", out var name));
-        Assert.Equal("Test Custom Report", name.GetString());
+        Assert.True(result.TryGetProperty("DepartmentId", out var deptId));
+        Assert.Equal(departmentId, deptId.GetInt32());
+        Assert.True(result.TryGetProperty("TargetDate", out var date));
     }
 
     #endregion
@@ -641,20 +619,18 @@ public class MockDevOpsIntegrationService : IDevOpsIntegrationService
 
 public class MockAdvancedAnalyticsService : IAdvancedAnalyticsService
 {
-    public Task<PriorityPrediction> PredictWorkRequestPriorityAsync(WorkRequest workRequest) => Task.FromResult(new PriorityPrediction { WorkRequestId = workRequest.Id, PredictedScore = 7.5, Confidence = 0.85 });
-    public Task<WorkloadPrediction> PredictDepartmentWorkloadAsync(int departmentId, DateTime forecastDate) => Task.FromResult(new WorkloadPrediction { DepartmentId = departmentId, PredictedWorkload = 75.0, Confidence = 0.78 });
-    public Task<List<WorkflowBottleneck>> IdentifyWorkflowBottlenecksAsync() => Task.FromResult(new List<WorkflowBottleneck>());
-    public Task<ResourceOptimizationSuggestion> GetResourceOptimizationSuggestionsAsync(int departmentId) => Task.FromResult(new ResourceOptimizationSuggestion { DepartmentId = departmentId });
-    public Task<ExecutiveDashboard> GetExecutiveDashboardAsync(DateTime startDate, DateTime endDate) => Task.FromResult(new ExecutiveDashboard { TotalWorkRequests = 150 });
-    public Task<DepartmentDashboard> GetDepartmentDashboardAsync(int departmentId, DateTime startDate, DateTime endDate) => Task.FromResult(new DepartmentDashboard { DepartmentId = departmentId });
-    public Task<ProjectDashboard> GetProjectDashboardAsync(int projectId, DateTime startDate, DateTime endDate) => Task.FromResult(new ProjectDashboard { ProjectId = projectId });
-    public Task<CustomReport> BuildCustomReportAsync(CustomReportRequest request) => Task.FromResult(new CustomReport { Name = request.ReportName });
-    public Task<List<ReportTemplate>> GetReportTemplatesAsync() => Task.FromResult(new List<ReportTemplate>());
-    public Task<string> SaveReportTemplateAsync(ReportTemplate template) => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<byte[]> ExportReportAsync(string reportId, ExportFormat format) => Task.FromResult(new byte[] { 1, 2, 3 });
-    public Task<byte[]> ExportDataAsync(DataExportRequest request) => Task.FromResult(new byte[] { 1, 2, 3 });
-    public Task<string> ScheduleDataExportAsync(DataExportSchedule schedule) => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<List<DataExportHistory>> GetExportHistoryAsync() => Task.FromResult(new List<DataExportHistory>());
+    public Task<PriorityPrediction> PredictPriorityAsync(int workRequestId) => Task.FromResult(new PriorityPrediction { WorkRequestId = workRequestId, PredictedPriority = 7.5m, Confidence = 0.85m });
+    public Task<IEnumerable<PriorityTrend>> PredictPriorityTrendsAsync(int departmentId, DateTime targetDate) => Task.FromResult<IEnumerable<PriorityTrend>>(new List<PriorityTrend>());
+    public Task<ResourceForecast> ForecastResourceNeedsAsync(int departmentId, DateTime targetDate) => Task.FromResult(new ResourceForecast { DepartmentId = departmentId, TargetDate = targetDate });
+    public Task<CapacityPrediction> PredictCapacityUtilizationAsync(int departmentId, DateTime targetDate) => Task.FromResult(new CapacityPrediction { DepartmentId = departmentId, TargetDate = targetDate });
+    public Task<CompletionPrediction> PredictCompletionTimeAsync(int workRequestId) => Task.FromResult(new CompletionPrediction { WorkRequestId = workRequestId });
+    public Task<IEnumerable<CompletionTrend>> PredictCompletionTrendsAsync(int departmentId, DateTime targetDate) => Task.FromResult<IEnumerable<CompletionTrend>>(new List<CompletionTrend>());
+    public Task<BusinessValueROI> CalculateROIAsync(int workRequestId) => Task.FromResult(new BusinessValueROI { WorkRequestId = workRequestId });
+    public Task<IEnumerable<BusinessValueTrend>> AnalyzeBusinessValueTrendsAsync(int businessVerticalId, DateTime fromDate, DateTime toDate) => Task.FromResult<IEnumerable<BusinessValueTrend>>(new List<BusinessValueTrend>());
+    public Task<RiskAssessment> AssessProjectRiskAsync(int workRequestId) => Task.FromResult(new RiskAssessment { WorkRequestId = workRequestId });
+    public Task<IEnumerable<RiskIndicator>> GetRiskIndicatorsAsync(int departmentId) => Task.FromResult<IEnumerable<RiskIndicator>>(new List<RiskIndicator>());
+    public Task<IEnumerable<PredictiveInsight>> GetPredictiveInsightsAsync(int businessVerticalId) => Task.FromResult<IEnumerable<PredictiveInsight>>(new List<PredictiveInsight>());
+    public Task<WorkloadPrediction> PredictWorkloadAsync(int departmentId, DateTime targetDate) => Task.FromResult(new WorkloadPrediction { DepartmentId = departmentId, TargetDate = targetDate });
 }
 
 public class MockMobileAccessibilityService : IMobileAccessibilityService

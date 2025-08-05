@@ -190,23 +190,16 @@ public class Phase4BasicTests
         var prediction = new PriorityPrediction
         {
             WorkRequestId = 123,
-            PredictedScore = 8.7,
-            Confidence = 0.92,
-            InfluencingFactors = new List<string>
-            {
-                "Business Value",
-                "Urgency",
-                "Department Workload",
-                "Historical Patterns"
-            },
-            PredictionDate = DateTime.UtcNow
+            PredictedPriority = 8.7m,
+            Confidence = 0.92m,
+            Reasoning = "Based on business value and urgency",
+            PredictedDate = DateTime.UtcNow
         };
 
         Assert.Equal(123, prediction.WorkRequestId);
-        Assert.Equal(8.7, prediction.PredictedScore);
-        Assert.Equal(0.92, prediction.Confidence);
-        Assert.Equal(4, prediction.InfluencingFactors.Count);
-        Assert.Contains("Business Value", prediction.InfluencingFactors);
+        Assert.Equal(8.7m, prediction.PredictedPriority);
+        Assert.Equal(0.92m, prediction.Confidence);
+        Assert.Equal("Based on business value and urgency", prediction.Reasoning);
     }
 
     [Fact]

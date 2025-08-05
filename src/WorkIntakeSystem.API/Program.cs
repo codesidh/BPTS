@@ -196,6 +196,12 @@ builder.Services.AddScoped<IGitLabIntegrationService, GitLabIntegrationService>(
 builder.Services.AddScoped<IJenkinsIntegrationService, JenkinsIntegrationService>();
 builder.Services.AddScoped<IFinancialSystemsIntegrationService, FinancialSystemsIntegrationService>();
 
+// Register Monitoring & Observability services
+builder.Services.AddScoped<IMonitoringService, MonitoringService>();
+builder.Services.AddScoped<IElasticsearchService, ElasticsearchService>();
+builder.Services.AddScoped<IApplicationPerformanceMonitoringService, ApplicationPerformanceMonitoringService>();
+builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 

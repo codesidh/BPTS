@@ -4,6 +4,9 @@ using WorkIntakeSystem.Core.Entities;
 using WorkIntakeSystem.Core.Enums;
 using WorkIntakeSystem.Infrastructure.Services;
 using WorkIntakeSystem.Infrastructure.Data;
+using WorkIntakeSystem.Core.Interfaces;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace WorkIntakeSystem.Tests
@@ -22,7 +25,12 @@ namespace WorkIntakeSystem.Tests
         public async Task CanAdvanceAsync_DeniesBackwardTransition()
         {
             var db = GetDbContext();
-            var engine = new WorkflowEngine(db);
+            var mockStageService = new Mock<IWorkflowStageConfigurationService>();
+            var mockTransitionService = new Mock<IWorkflowTransitionService>();
+            var mockEmailService = new Mock<IEmailService>();
+            var mockLogger = new Mock<ILogger<WorkflowEngine>>();
+            
+            var engine = new WorkflowEngine(db, mockStageService.Object, mockTransitionService.Object, mockEmailService.Object, mockLogger.Object);
             var wr = new WorkRequest { Id = 1, CurrentStage = WorkflowStage.BusinessReview };
             db.Users.Add(new User { Id = 1, Role = UserRole.SystemAdministrator });
             db.SaveChanges();
@@ -34,7 +42,12 @@ namespace WorkIntakeSystem.Tests
         public async Task AdvanceAsync_LogsAuditAndEvent()
         {
             var db = GetDbContext();
-            var engine = new WorkflowEngine(db);
+            var mockStageService = new Mock<IWorkflowStageConfigurationService>();
+            var mockTransitionService = new Mock<IWorkflowTransitionService>();
+            var mockEmailService = new Mock<IEmailService>();
+            var mockLogger = new Mock<ILogger<WorkflowEngine>>();
+            
+            var engine = new WorkflowEngine(db, mockStageService.Object, mockTransitionService.Object, mockEmailService.Object, mockLogger.Object);
             var wr = new WorkRequest { Id = 2, CurrentStage = WorkflowStage.Intake };
             db.Users.Add(new User { Id = 2, Role = UserRole.SystemAdministrator });
             db.WorkRequests.Add(wr);
