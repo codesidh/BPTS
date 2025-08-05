@@ -74,7 +74,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 throw new InvalidOperationException("Transition not allowed");
 
             // SLA tracking – compute time spent in stage and store in AuditTrail metadata (simple implementation)
-            var timeInStage = DateTime.UtcNow - (workRequest.ModifiedDate ?? workRequest.CreatedDate);
+            var timeInStage = DateTime.UtcNow - (workRequest.ModifiedDate != DateTime.MinValue ? workRequest.ModifiedDate : workRequest.CreatedDate);
 
             var oldStage = workRequest.CurrentStage;
             workRequest.CurrentStage = nextStage;

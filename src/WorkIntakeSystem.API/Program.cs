@@ -163,7 +163,8 @@ builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationServi
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>(sp =>
     new ConfigurationService(
         sp.GetRequiredService<ISystemConfigurationRepository>(),
-        sp.GetRequiredService<IConfiguration>()
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<ILogger<ConfigurationService>>()
     )
 );
 
