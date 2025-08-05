@@ -179,6 +179,10 @@ builder.Services.AddScoped<INotificationIntegration, NotificationIntegration>();
 builder.Services.AddScoped<IConfigurationChangeService, ConfigurationChangeService>();
 builder.Services.AddScoped<IWorkCategoryConfigurationService, WorkCategoryConfigurationService>();
 
+// Register enhanced workflow services
+builder.Services.AddScoped<IWorkflowStageConfigurationService, WorkflowStageConfigurationService>();
+builder.Services.AddScoped<IWorkflowTransitionService, WorkflowTransitionService>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 

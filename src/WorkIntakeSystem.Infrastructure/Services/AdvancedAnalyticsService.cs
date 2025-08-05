@@ -697,7 +697,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         }
     }
 
-    public async Task<List<WorkflowBottleneck>> IdentifyWorkflowBottlenecksAsync()
+    public async Task<List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>> IdentifyWorkflowBottlenecksAsync()
     {
         try
         {
@@ -710,7 +710,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 "Training", "Closure"
             };
 
-            var bottlenecks = new List<WorkflowBottleneck>();
+            var bottlenecks = new List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>();
 
             foreach (var stage in workflowStages)
             {
@@ -720,7 +720,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
 
                 if (bottleneckScore > 0.7) // Threshold for bottleneck
                 {
-                    bottlenecks.Add(new WorkflowBottleneck
+                    bottlenecks.Add(new WorkIntakeSystem.Core.Entities.WorkflowBottleneck
                     {
                         Stage = stage,
                         AverageTimeInStage = averageTime,
@@ -737,7 +737,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to identify workflow bottlenecks");
-            return new List<WorkflowBottleneck>();
+            return new List<WorkIntakeSystem.Core.Entities.WorkflowBottleneck>();
         }
     }
 
