@@ -189,6 +189,13 @@ builder.Services.AddScoped<ICircuitBreakerService, CircuitBreakerService>();
 builder.Services.AddScoped<IDeadLetterQueueService, DeadLetterQueueService>();
 builder.Services.AddScoped<IEnterpriseServiceBus, EnterpriseServiceBus>();
 
+// Register Enhanced External Integration services
+builder.Services.AddScoped<IMicrosoft365Service, Microsoft365Service>();
+builder.Services.AddScoped<IDevOpsIntegrationService, DevOpsIntegrationService>();
+builder.Services.AddScoped<IGitLabIntegrationService, GitLabIntegrationService>();
+builder.Services.AddScoped<IJenkinsIntegrationService, JenkinsIntegrationService>();
+builder.Services.AddScoped<IFinancialSystemsIntegrationService, FinancialSystemsIntegrationService>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 
