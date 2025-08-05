@@ -17,6 +17,8 @@ public class BusinessVertical : BaseEntity
     
     public string ConfigurationHistory { get; set; } = "[]"; // JSON array of configuration changes
     
+    public decimal StrategicImportance { get; set; } = 1.0m; // Strategic importance factor for priority calculations
+    
     // Navigation properties
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
     public virtual ICollection<WorkRequest> WorkRequests { get; set; } = new List<WorkRequest>();

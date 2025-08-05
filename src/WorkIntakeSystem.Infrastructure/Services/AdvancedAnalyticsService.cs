@@ -104,13 +104,14 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 return trends;
 
             // Calculate trend using linear regression
-            var trendSlope = CalculateTrendSlope(historicalData.Select(h => new { Date = h.CreatedDate, Value = (double)h.Priority }));
+            var trendData = historicalData.Select(h => new { Date = h.CreatedDate, Value = (double)h.Priority }).Cast<dynamic>().ToList();
+            var trendSlope = CalculateTrendSlope(trendData);
 
             // Predict future trends
             for (int i = 1; i <= Math.Min(daysToPredict, 30); i++)
             {
                 var predictionDate = currentDate.AddDays(i);
-                var predictedPriority = CalculateTrendPrediction(historicalData, trendSlope, predictionDate);
+                var predictedPriority = CalculateTrendPrediction(trendData, trendSlope, predictionDate);
                 var workRequestCount = await PredictWorkRequestCountAsync(departmentId, predictionDate);
 
                 trends.Add(new PriorityTrend
@@ -267,7 +268,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
             var adjustedCompletionDays = averageCompletionDays * complexityMultiplier;
 
             // Calculate confidence based on data quality
-            var confidence = CalculateCompletionConfidence(similarWorkRequests.Count, workRequest);
+            var confidence = CalculateCompletionConfidence(similarWorkRequests.Count(), workRequest);
 
             // Generate factors affecting completion
             var factors = GenerateCompletionFactors(workRequest, complexityMultiplier);
@@ -308,13 +309,14 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 return trends;
 
             // Calculate trend
-            var trendSlope = CalculateCompletionTrendSlope(historicalData);
+            var completionData = historicalData.Cast<dynamic>().ToList();
+            var trendSlope = CalculateCompletionTrendSlope(completionData);
 
             // Predict future trends
             for (int i = 1; i <= 30; i++)
             {
                 var predictionDate = currentDate.AddDays(i);
-                var predictedCompletionTime = CalculateCompletionTrendPrediction(historicalData, trendSlope, predictionDate);
+                var predictedCompletionTime = CalculateCompletionTrendPrediction(completionData, trendSlope, predictionDate);
                 var completedWorkItems = await PredictCompletedWorkItemsAsync(departmentId, predictionDate);
 
                 trends.Add(new CompletionTrend
@@ -407,6 +409,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                     WorkRequestCount = g.Count()
                 })
                 .OrderBy(d => d.Date)
+                .Cast<dynamic>()
                 .ToList();
 
             foreach (var data in monthlyData)
@@ -515,7 +518,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 {
                     DepartmentId = departmentId,
                     RiskType = "Overdue Work",
-                    RiskScore = overdueRisk,
+                    RiskScore = (decimal)overdueRisk,
                     RiskLevel = DetermineRiskLevel(overdueRisk),
                     Description = "High number of overdue work requests",
                     MitigationAction = "Review and reprioritize overdue items"
@@ -528,7 +531,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 {
                     DepartmentId = departmentId,
                     RiskType = "Capacity Overload",
-                    RiskScore = capacityRisk,
+                    RiskScore = (decimal)capacityRisk,
                     RiskLevel = DetermineRiskLevel(capacityRisk),
                     Description = "Department capacity utilization is high",
                     MitigationAction = "Consider resource allocation or workload redistribution"
@@ -541,7 +544,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 {
                     DepartmentId = departmentId,
                     RiskType = "High Complexity",
-                    RiskScore = complexityRisk,
+                    RiskScore = (decimal)complexityRisk,
                     RiskLevel = DetermineRiskLevel(complexityRisk),
                     Description = "High complexity work requests may cause delays",
                     MitigationAction = "Break down complex work into smaller tasks"
@@ -554,7 +557,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
                 {
                     DepartmentId = departmentId,
                     RiskType = "Dependency Risk",
-                    RiskScore = dependencyRisk,
+                    RiskScore = (decimal)dependencyRisk,
                     RiskLevel = DetermineRiskLevel(dependencyRisk),
                     Description = "Work requests have external dependencies",
                     MitigationAction = "Coordinate with dependent teams and set clear expectations"
@@ -849,7 +852,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
             .ToList();
 
         var xValues = Enumerable.Range(0, completionTimes.Count).Select(i => (double)i).ToArray();
-        var yValues = completionTimes.ToArray();
+        var yValues = completionTimes.Select(t => (double)t).ToArray();
 
         var n = xValues.Length;
         var sumX = xValues.Sum();
@@ -1126,7 +1129,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         if (!workRequests.Any()) return 0;
 
         var highDependencyCount = workRequests.Count(wr => 
-            wr.BusinessValue > 0.7m || wr.BusinessVertical?.StrategicImportance > 0.8m);
+            wr.BusinessValue > 0.7m || (wr.BusinessVertical?.StrategicImportance ?? 0m) > 0.8m);
         
         return (double)highDependencyCount / workRequests.Count;
     }
@@ -1136,7 +1139,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
         var averagePriority = workRequests.Average(wr => wr.Priority);
         var highPriorityCount = workRequests.Count(wr => wr.Priority > 0.7m);
 
-        if (highPriorityCount > workRequests.Count * 0.3)
+        if (highPriorityCount > (int)(workRequests.Count * 0.3))
         {
             return new PredictiveInsight
             {
@@ -1189,7 +1192,7 @@ public class AdvancedAnalyticsService : IAdvancedAnalyticsService
             var olderAverage = olderWorkRequests.Average(wr => wr.BusinessValue);
             var change = recentAverage - olderAverage;
 
-            if (Math.Abs(change) > 0.1)
+            if (Math.Abs((double)change) > 0.1)
             {
                 return new PredictiveInsight
                 {

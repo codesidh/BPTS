@@ -10,7 +10,8 @@ public enum WorkStatus
     InProgress = 6,
     Testing = 7,
     Deployed = 8,
-    Closed = 9,
-    Rejected = 10,
-    OnHold = 11
+    Completed = 9,
+    Closed = 10,
+    Rejected = 11,
+    OnHold = 12
 }

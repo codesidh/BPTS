@@ -66,4 +66,89 @@ public class CircuitBreakerStatus
     public DateTime NextAttemptTime { get; set; } = DateTime.UtcNow;
     public int Threshold { get; set; } = 5;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(1);
+}
+
+// Message Transformation Service Interface
+public interface IMessageTransformationService
+{
+    Task<object> TransformMessageAsync(object message, string sourceFormat, string targetFormat);
+    Task<bool> ValidateMessageFormatAsync(object message, string expectedFormat);
+    Task<object> TransformRequestAsync(object request, string sourceFormat, string targetFormat);
+    Task<object> TransformResponseAsync(object response, string sourceFormat, string targetFormat);
+    Task<TransformationRule> GetTransformationRuleAsync(string sourceFormat, string targetFormat);
+    Task<bool> AddTransformationRuleAsync(TransformationRule rule);
+    Task<IEnumerable<TransformationRule>> GetAllTransformationRulesAsync();
+    Task<TransformationMetrics> GetTransformationMetricsAsync();
+}
+
+// Circuit Breaker Service Interface
+public interface ICircuitBreakerService
+{
+    Task<T> ExecuteWithCircuitBreakerAsync<T>(string serviceName, Func<Task<T>> operation);
+    Task<bool> IsServiceAvailableAsync(string serviceName);
+    Task<CircuitBreakerStatus> GetCircuitBreakerStatusAsync(string serviceName);
+    Task<bool> ResetCircuitBreakerAsync(string serviceName);
+    Task<bool> SetCircuitBreakerThresholdAsync(string serviceName, int threshold);
+    Task<bool> SetCircuitBreakerTimeoutAsync(string serviceName, TimeSpan timeout);
+    Task<IEnumerable<CircuitBreakerStatus>> GetAllCircuitBreakerStatusesAsync();
+    Task<CircuitBreakerMetrics> GetCircuitBreakerMetricsAsync(string serviceName);
+}
+
+// Dead Letter Queue Service Interface
+public interface IDeadLetterQueueService
+{
+    Task<bool> AddToDeadLetterAsync(ServiceBusMessage message, string errorReason);
+    Task<IEnumerable<ServiceBusMessage>> GetDeadLetterMessagesAsync(string serviceName);
+    Task<bool> RetryMessageAsync(string messageId, int maxRetries = 3);
+    Task<bool> RemoveFromDeadLetterAsync(string messageId);
+    Task<bool> ArchiveDeadLetterMessageAsync(string messageId);
+    Task<DeadLetterQueueMetrics> GetDeadLetterQueueMetricsAsync(string serviceName);
+    Task<IEnumerable<DeadLetterQueueMetrics>> GetAllDeadLetterQueueMetricsAsync();
+    Task<bool> PurgeDeadLetterQueueAsync(string serviceName, DateTime beforeDate);
+}
+
+// Supporting Classes
+public class TransformationRule
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string SourceFormat { get; set; } = string.Empty;
+    public string TargetFormat { get; set; } = string.Empty;
+    public string TransformationScript { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime? LastUsedDate { get; set; }
+    public int UsageCount { get; set; } = 0;
+    public double AverageTransformationTime { get; set; } = 0;
+}
+
+public class TransformationMetrics
+{
+    public int TotalTransformations { get; set; } = 0;
+    public int SuccessfulTransformations { get; set; } = 0;
+    public int FailedTransformations { get; set; } = 0;
+    public double AverageTransformationTime { get; set; } = 0;
+    public Dictionary<string, int> TransformationsByFormat { get; set; } = new();
+    public DateTime LastReset { get; set; } = DateTime.UtcNow;
+}
+
+public class CircuitBreakerMetrics
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public int TotalRequests { get; set; } = 0;
+    public int SuccessfulRequests { get; set; } = 0;
+    public int FailedRequests { get; set; } = 0;
+    public int CircuitOpenCount { get; set; } = 0;
+    public double AverageResponseTime { get; set; } = 0;
+    public DateTime LastReset { get; set; } = DateTime.UtcNow;
+}
+
+public class DeadLetterQueueMetrics
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public int TotalMessages { get; set; } = 0;
+    public int RetriedMessages { get; set; } = 0;
+    public int ArchivedMessages { get; set; } = 0;
+    public int PurgedMessages { get; set; } = 0;
+    public Dictionary<string, int> MessagesByErrorType { get; set; } = new();
+    public DateTime LastReset { get; set; } = DateTime.UtcNow;
 } 

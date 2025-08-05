@@ -24,6 +24,7 @@ public class WorkIntakeDbContext : DbContext
     public DbSet<ConfigurationChangeRequest> ConfigurationChangeRequests { get; set; }
     public DbSet<WorkflowStageConfiguration> WorkflowStages { get; set; }
     public DbSet<WorkflowTransition> WorkflowTransitions { get; set; }
+    public DbSet<PriorityConfiguration> PriorityConfigurations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,7 @@ public class WorkIntakeDbContext : DbContext
         ConfigureConfigurationChangeRequest(modelBuilder);
         ConfigureWorkflowStageConfiguration(modelBuilder);
         ConfigureWorkflowTransition(modelBuilder);
+        ConfigurePriorityConfiguration(modelBuilder);
         
         // Seed initial data
         SeedInitialData(modelBuilder);
@@ -398,6 +400,29 @@ public class WorkIntakeDbContext : DbContext
             entity.HasOne(t => t.BusinessVertical)
                   .WithMany()
                   .HasForeignKey(t => t.BusinessVerticalId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigurePriorityConfiguration(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PriorityConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PriorityName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.MinScore).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.MaxScore).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.TimeDecayConfiguration).HasDefaultValue("{}");
+            entity.Property(e => e.BusinessValueWeights).HasDefaultValue("{}");
+            entity.Property(e => e.CapacityFactors).HasDefaultValue("{}");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(e => new { e.BusinessVerticalId, e.PriorityName }).IsUnique();
+
+            entity.HasOne(pc => pc.BusinessVertical)
+                  .WithMany()
+                  .HasForeignKey(pc => pc.BusinessVerticalId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
     }

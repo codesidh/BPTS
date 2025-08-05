@@ -183,6 +183,12 @@ builder.Services.AddScoped<IWorkCategoryConfigurationService, WorkCategoryConfig
 builder.Services.AddScoped<IWorkflowStageConfigurationService, WorkflowStageConfigurationService>();
 builder.Services.AddScoped<IWorkflowTransitionService, WorkflowTransitionService>();
 
+// Register Enterprise Service Bus (ESB) services
+builder.Services.AddScoped<IMessageTransformationService, MessageTransformationService>();
+builder.Services.AddScoped<ICircuitBreakerService, CircuitBreakerService>();
+builder.Services.AddScoped<IDeadLetterQueueService, DeadLetterQueueService>();
+builder.Services.AddScoped<IEnterpriseServiceBus, EnterpriseServiceBus>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 
