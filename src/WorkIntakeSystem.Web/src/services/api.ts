@@ -8,7 +8,13 @@ import {
   BusinessVertical,
   User,
   DashboardStats,
-  PriorityLevel
+  PriorityLevel,
+  WorkflowStageConfiguration,
+  WorkflowTransition,
+  WorkflowValidationResult,
+  WorkflowMetrics,
+  WorkflowBottleneckAnalysis,
+  SLAStatus
 } from '../types';
 
 interface LoginRequest {
@@ -230,6 +236,104 @@ class ApiService {
   async generateReport(reportType: string, filters: any): Promise<any> {
     const response = await this.api.post<any>(`/reports/${reportType}`, filters);
     return response.data;
+  }
+
+  // Workflow Designer API
+  async getWorkflowStages(businessVerticalId?: number): Promise<WorkflowStageConfiguration[]> {
+    const params = businessVerticalId ? `?businessVerticalId=${businessVerticalId}` : '';
+    const response = await this.api.get<WorkflowStageConfiguration[]>(`/workflow/stages${params}`);
+    return response.data;
+  }
+
+  async createWorkflowStage(stage: Omit<WorkflowStageConfiguration, 'id'>): Promise<WorkflowStageConfiguration> {
+    const response = await this.api.post<WorkflowStageConfiguration>('/workflow/stages', stage);
+    return response.data;
+  }
+
+  async updateWorkflowStage(stageId: number, stage: WorkflowStageConfiguration): Promise<WorkflowStageConfiguration> {
+    const response = await this.api.put<WorkflowStageConfiguration>(`/workflow/stages/${stageId}`, stage);
+    return response.data;
+  }
+
+  async deleteWorkflowStage(stageId: number): Promise<void> {
+    await this.api.delete(`/workflow/stages/${stageId}`);
+  }
+
+  async getWorkflowTransitions(businessVerticalId?: number): Promise<WorkflowTransition[]> {
+    const params = businessVerticalId ? `?businessVerticalId=${businessVerticalId}` : '';
+    const response = await this.api.get<WorkflowTransition[]>(`/workflow/transitions${params}`);
+    return response.data;
+  }
+
+  async createWorkflowTransition(transition: Omit<WorkflowTransition, 'id'>): Promise<WorkflowTransition> {
+    const response = await this.api.post<WorkflowTransition>('/workflow/transitions', transition);
+    return response.data;
+  }
+
+  async updateWorkflowTransition(transitionId: number, transition: WorkflowTransition): Promise<WorkflowTransition> {
+    const response = await this.api.put<WorkflowTransition>(`/workflow/transitions/${transitionId}`, transition);
+    return response.data;
+  }
+
+  async deleteWorkflowTransition(transitionId: number): Promise<void> {
+    await this.api.delete(`/workflow/transitions/${transitionId}`);
+  }
+
+  async validateWorkflow(businessVerticalId?: number): Promise<WorkflowValidationResult> {
+    const params = businessVerticalId ? `?businessVerticalId=${businessVerticalId}` : '';
+    const response = await this.api.get<WorkflowValidationResult>(`/workflow/validate${params}`);
+    return response.data;
+  }
+
+  async getWorkflowMetrics(fromDate: string, toDate: string, businessVerticalId?: number): Promise<WorkflowMetrics> {
+    const params = new URLSearchParams({
+      fromDate,
+      toDate,
+      ...(businessVerticalId && { businessVerticalId: businessVerticalId.toString() })
+    });
+    const response = await this.api.get<WorkflowMetrics>(`/workflow/metrics?${params}`);
+    return response.data;
+  }
+
+  async getWorkflowBottlenecks(businessVerticalId?: number): Promise<WorkflowBottleneckAnalysis[]> {
+    const params = businessVerticalId ? `?businessVerticalId=${businessVerticalId}` : '';
+    const response = await this.api.get<WorkflowBottleneckAnalysis[]>(`/workflow/bottlenecks${params}`);
+    return response.data;
+  }
+
+  async getSLAStatus(workRequestId: number): Promise<SLAStatus> {
+    const response = await this.api.get<SLAStatus>(`/workflow/work-requests/${workRequestId}/sla-status`);
+    return response.data;
+  }
+
+  async getAvailableTransitions(workRequestId: number): Promise<any[]> {
+    const response = await this.api.get<any[]>(`/workflow/work-requests/${workRequestId}/transitions`);
+    return response.data;
+  }
+
+  async advanceWorkflowStage(workRequestId: number, nextStage: string, comments?: string): Promise<void> {
+    await this.api.post(`/workflow/work-requests/${workRequestId}/advance`, { nextStage, comments });
+  }
+
+  // Generic API methods for flexible usage
+  async get<T = any>(url: string): Promise<{ data: T }> {
+    const response = await this.api.get<T>(url);
+    return { data: response.data };
+  }
+
+  async post<T = any>(url: string, data?: any): Promise<{ data: T }> {
+    const response = await this.api.post<T>(url, data);
+    return { data: response.data };
+  }
+
+  async put<T = any>(url: string, data?: any): Promise<{ data: T }> {
+    const response = await this.api.put<T>(url, data);
+    return { data: response.data };
+  }
+
+  async delete<T = any>(url: string): Promise<{ data?: T }> {
+    const response = await this.api.delete<T>(url);
+    return { data: response.data };
   }
 }
 

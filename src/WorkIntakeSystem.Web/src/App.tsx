@@ -14,6 +14,7 @@ import Reports from './pages/Reports';
 import ExternalIntegrations from './pages/ExternalIntegrations';
 import ConfigurationManagement from './pages/ConfigurationManagement';
 import EventAuditTrail from './pages/EventAuditTrail';
+import WorkflowDesigner from './pages/WorkflowDesigner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -160,6 +161,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             <EventAuditTrail />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/workflow-designer" element={
+        <ProtectedRoute>
+          <Layout>
+            <WorkflowDesigner />
           </Layout>
         </ProtectedRoute>
       } />
