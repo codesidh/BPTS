@@ -10,9 +10,13 @@ public static class TestConfiguration
 {
     public static void ConfigureTestServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Register Redis Connection
-        var redisConnection = ConnectionMultiplexer.Connect(configuration.GetConnectionString("Redis") ?? "localhost:6379");
-        services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+        // Register Redis Connection as a mock to avoid external dependency during tests
+        var mockRedis = new Mock<IConnectionMultiplexer>();
+        // Setup commonly used members to prevent NullReferenceExceptions in services
+        var mockDb = new Mock<IDatabase>();
+        mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>() ))
+                 .Returns(mockDb.Object);
+        services.AddSingleton<IConnectionMultiplexer>(mockRedis.Object);
 
         // Register Microsoft Graph Client (with mock for testing)
         var mockGraphClient = new Mock<GraphServiceClient>();
