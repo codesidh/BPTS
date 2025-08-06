@@ -14,4 +14,6 @@ public interface IUserRepository
     Task DeleteAsync(int id);
     Task<bool> ExistsAsync(int id);
     Task<bool> EmailExistsAsync(string email);
+    Task<User?> GetByWindowsIdentityAsync(string windowsIdentity);
+    Task<User> AddAsync(User user);
 } 

@@ -17,15 +17,18 @@ public class AuthController : ControllerBase
     private readonly IJwtAuthenticationService _authService;
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
+    private readonly IWindowsAuthenticationService _windowsAuthService;
 
     public AuthController(
         IJwtAuthenticationService authService,
         IUserRepository userRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IWindowsAuthenticationService windowsAuthService)
     {
         _authService = authService;
         _userRepository = userRepository;
         _mapper = mapper;
+        _windowsAuthService = windowsAuthService;
     }
 
     [HttpPost("login")]
@@ -163,5 +166,65 @@ public class AuthController : ControllerBase
 
         var userDto = _mapper.Map<UserDto>(user);
         return Ok(userDto);
+    }
+
+    [HttpPost("windows-login")]
+    public async Task<IActionResult> WindowsLogin()
+    {
+        var windowsIdentity = User.Identity?.Name;
+        if (string.IsNullOrEmpty(windowsIdentity))
+            return Unauthorized(new { message = "Windows authentication not available" });
+
+        var authResult = await _windowsAuthService.AuthenticateWindowsUserAsync(windowsIdentity);
+        
+        if (!authResult.IsAuthenticated)
+            return Unauthorized(new { message = authResult.ErrorMessage });
+
+        var response = new AuthenticationResponseDto
+        {
+            Token = authResult.JwtToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            User = _mapper.Map<UserDto>(authResult.User),
+            AuthenticationType = "Windows"
+        };
+
+        return Ok(response);
+    }
+
+    [HttpPost("hybrid-login")]
+    public async Task<IActionResult> HybridLogin([FromBody] LoginRequestDto request)
+    {
+        // Try Windows Authentication first
+        var windowsIdentity = User.Identity?.Name;
+        if (!string.IsNullOrEmpty(windowsIdentity))
+        {
+            var windowsAuthResult = await _windowsAuthService.AuthenticateWindowsUserAsync(windowsIdentity);
+            if (windowsAuthResult.IsAuthenticated)
+            {
+                return Ok(new AuthenticationResponseDto
+                {
+                    Token = windowsAuthResult.JwtToken,
+                    ExpiresAt = DateTime.UtcNow.AddHours(24),
+                    User = _mapper.Map<UserDto>(windowsAuthResult.User),
+                    AuthenticationType = "Windows"
+                });
+            }
+        }
+
+        // Fallback to traditional JWT authentication
+        var user = await _authService.ValidateUserAsync(request.Email, request.Password);
+        if (user == null)
+            return Unauthorized(new { message = "Invalid credentials" });
+
+        var token = await _authService.GenerateJwtTokenAsync(user);
+        var userDto = _mapper.Map<UserDto>(user);
+
+        return Ok(new AuthenticationResponseDto
+        {
+            Token = token,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            User = userDto,
+            AuthenticationType = "JWT"
+        });
     }
 } 

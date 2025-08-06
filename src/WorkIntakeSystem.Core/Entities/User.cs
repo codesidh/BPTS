@@ -45,4 +45,17 @@ public class User : BaseEntity
     public virtual ICollection<WorkRequest> SubmittedRequests { get; set; } = new List<WorkRequest>();
     public virtual ICollection<Priority> PriorityVotes { get; set; } = new List<Priority>();
     public virtual ICollection<AuditTrail> AuditTrails { get; set; } = new List<AuditTrail>();
+    
+    // Windows Authentication fields
+    [MaxLength(255)]
+    public string? WindowsIdentity { get; set; }
+    
+    [MaxLength(255)]
+    public string? ActiveDirectorySid { get; set; }
+    
+    public bool IsWindowsAuthenticated { get; set; } = false;
+    
+    public DateTime? LastAdSync { get; set; }
+    
+    public string? AdGroups { get; set; } // JSON field for AD groups
 }

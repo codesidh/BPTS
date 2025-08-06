@@ -98,4 +98,23 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.AnyAsync(u => u.Email == email && u.IsActive);
     }
+
+    public async Task<User?> GetByWindowsIdentityAsync(string windowsIdentity)
+    {
+        return await _context.Users
+            .Include(u => u.Department)
+            .Include(u => u.BusinessVertical)
+            .FirstOrDefaultAsync(u => u.WindowsIdentity == windowsIdentity && u.IsActive);
+    }
+
+    public async Task<User> AddAsync(User user)
+    {
+        user.CreatedDate = DateTime.UtcNow;
+        user.ModifiedDate = DateTime.UtcNow;
+        user.IsActive = true;
+        
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
 } 

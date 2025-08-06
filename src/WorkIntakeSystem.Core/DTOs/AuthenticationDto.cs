@@ -78,6 +78,7 @@ public class AuthenticationResponseDto
     public string Token { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public UserDto User { get; set; } = new();
+    public string AuthenticationType { get; set; } = "JWT";
 }
 
 public class UserDto

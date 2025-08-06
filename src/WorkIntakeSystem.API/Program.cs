@@ -129,6 +129,8 @@ builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
 
 // Authentication services
 builder.Services.AddScoped<IJwtAuthenticationService, JwtAuthenticationService>();
+builder.Services.AddScoped<IWindowsAuthenticationService, WindowsAuthenticationService>();
+builder.Services.AddScoped<IActiveDirectoryService, ActiveDirectoryService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
@@ -250,6 +252,9 @@ app.Use(async (context, next) =>
 
 // Add API Gateway middleware before authentication
 app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.ApiGatewayMiddleware>();
+
+// Add Windows Authentication middleware
+app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.WindowsAuthenticationMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
