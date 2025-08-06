@@ -15,6 +15,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 
 
 namespace WorkIntakeSystem.Tests;
@@ -37,6 +38,9 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
                 
                 // Override policy evaluator for testing
                 services.AddSingleton<IPolicyEvaluator, FakePolicyEvaluator>();
+                
+                // Configure test services with real database and Redis
+                TestConfiguration.ConfigureTestServices(services, new ConfigurationBuilder().Build());
                 
                 // Mock services for testing
                 services.AddScoped<IMicrosoft365Service, MockMicrosoft365Service>();
@@ -71,8 +75,11 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         // Assert
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
+        
+
+        
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
     }
 
     [Fact]
@@ -96,7 +103,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
     }
 
     [Fact]
@@ -118,7 +125,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("WorkspaceId", out var workspaceId));
         Assert.False(string.IsNullOrEmpty(workspaceId.GetString()));
     }
@@ -136,7 +143,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("Reports", out var reports));
         Assert.True(reports.ValueKind == JsonValueKind.Array);
     }
@@ -168,7 +175,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("WorkItemId", out var workItemId));
         Assert.False(string.IsNullOrEmpty(workItemId.GetString()));
     }
@@ -196,7 +203,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("IssueKey", out var issueKey));
         Assert.False(string.IsNullOrEmpty(issueKey.GetString()));
     }
@@ -214,7 +221,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
     }
 
     #endregion
@@ -321,7 +328,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("Config", out var config));
         Assert.True(config.TryGetProperty("Version", out var version));
         Assert.False(string.IsNullOrEmpty(version.GetString()));
@@ -337,7 +344,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
     }
 
     [Fact]
@@ -350,7 +357,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("WorkRequests", out var workRequests));
         Assert.True(workRequests.ValueKind == JsonValueKind.Array);
     }
@@ -365,7 +372,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("Profile", out var profile));
         Assert.True(profile.TryGetProperty("FontScale", out var fontScale));
         Assert.True(fontScale.GetDouble() > 0);
@@ -395,7 +402,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
     }
 
     [Fact]
@@ -408,7 +415,7 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.True(response.IsSuccessStatusCode);
         var responseContent = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
-        Assert.True(result.GetProperty("Success").GetBoolean());
+        Assert.True(result.GetProperty("success").GetBoolean());
         Assert.True(result.TryGetProperty("Configuration", out var config));
         Assert.True(config.TryGetProperty("PushNotificationsEnabled", out var pushEnabled));
         Assert.True(pushEnabled.ValueKind == JsonValueKind.True || pushEnabled.ValueKind == JsonValueKind.False);

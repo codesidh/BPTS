@@ -5,6 +5,7 @@ using WorkIntakeSystem.Core.Enums;
 using WorkIntakeSystem.Infrastructure.Services;
 using WorkIntakeSystem.Infrastructure.Data;
 using WorkIntakeSystem.Core.Interfaces;
+using WorkIntakeSystem.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -46,6 +47,26 @@ namespace WorkIntakeSystem.Tests
             var mockTransitionService = new Mock<IWorkflowTransitionService>();
             var mockEmailService = new Mock<IEmailService>();
             var mockLogger = new Mock<ILogger<WorkflowEngine>>();
+            
+            // Configure mock stage service
+            var intakeStage = new WorkflowStageConfiguration { Id = 1, Order = (int)WorkflowStage.Intake, Name = "Intake" };
+            var businessReviewStage = new WorkflowStageConfiguration { Id = 2, Order = (int)WorkflowStage.BusinessReview, Name = "Business Review" };
+            mockStageService.Setup(x => x.GetStageByOrderAsync((int)WorkflowStage.Intake, null)).ReturnsAsync(intakeStage);
+            mockStageService.Setup(x => x.GetStageByOrderAsync((int)WorkflowStage.BusinessReview, null)).ReturnsAsync(businessReviewStage);
+            
+            // Configure mock transition service
+            var transition = new WorkflowTransition 
+            { 
+                Id = 1, 
+                FromStage = intakeStage, 
+                ToStage = businessReviewStage,
+                IsActive = true
+            };
+            mockTransitionService.Setup(x => x.GetTransitionAsync(1, 2, null)).ReturnsAsync(transition);
+            mockTransitionService.Setup(x => x.CanUserExecuteTransitionAsync(1, 2)).ReturnsAsync(true);
+            mockTransitionService.Setup(x => x.EvaluateConditionAsync(1, It.IsAny<WorkRequest>(), 2)).ReturnsAsync(true);
+            mockTransitionService.Setup(x => x.ValidateTransitionAsync(1, It.IsAny<WorkRequest>(), 2))
+                .ReturnsAsync(new ValidationResult { IsValid = true, Errors = new List<string>() });
             
             var engine = new WorkflowEngine(db, mockStageService.Object, mockTransitionService.Object, mockEmailService.Object, mockLogger.Object);
             var wr = new WorkRequest { Id = 2, CurrentStage = WorkflowStage.Intake };
