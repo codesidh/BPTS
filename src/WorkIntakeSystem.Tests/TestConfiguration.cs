@@ -3,6 +3,9 @@ using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 using Microsoft.Graph;
 using Moq;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.EntityFrameworkCore;
+using WorkIntakeSystem.Infrastructure.Data;
 
 namespace WorkIntakeSystem.Tests;
 
@@ -17,6 +20,20 @@ public static class TestConfiguration
         mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>() ))
                  .Returns(mockDb.Object);
         services.AddSingleton<IConnectionMultiplexer>(mockRedis.Object);
+
+        // Override IDistributedCache with in-memory implementation and remove Redis cache registration
+        services.RemoveAll<IDistributedCache>();
+        services.AddDistributedMemoryCache();
+
+        // Replace SQL Server DbContext with in-memory provider for tests
+        services.RemoveAll<WorkIntakeDbContext>();
+        services.RemoveAll<DbContextOptions<WorkIntakeDbContext>>();
+        services.AddDbContext<WorkIntakeDbContext>(options =>
+            options.UseInMemoryDatabase("WorkIntakeTestDb"));
+
+        // Register a no-op rate limiting service to bypass Redis entirely
+        services.RemoveAll<IRateLimitingService>();
+        services.AddSingleton<IRateLimitingService, NoOpRateLimitingService>();
 
         // Register Microsoft Graph Client (with mock for testing)
         var mockGraphClient = new Mock<GraphServiceClient>();
@@ -40,5 +57,15 @@ public static class TestConfiguration
                 .ReturnsAsync(Enumerable.Empty<WorkIntakeSystem.Core.Interfaces.ServiceBrokerMessage>());
             return mockServiceBroker.Object;
         });
+    }
+
+    // Simple no-op implementation used in tests
+    private class NoOpRateLimitingService : IRateLimitingService
+    {
+        public Task<bool> IsRequestAllowed(string clientId, string endpoint) => Task.FromResult(true);
+        public Task<WorkIntakeSystem.Core.Interfaces.RateLimitInfo> GetRateLimitInfo(string clientId, string endpoint)
+            => Task.FromResult(new WorkIntakeSystem.Core.Interfaces.RateLimitInfo { IsAllowed = true, Limit = int.MaxValue, Remaining = int.MaxValue, ResetTime = DateTime.UtcNow.AddMinutes(1) });
+        public Task IncrementRequestCount(string clientId, string endpoint) => Task.CompletedTask;
+        public Task ResetRateLimit(string clientId, string endpoint) => Task.CompletedTask;
     }
 } 
