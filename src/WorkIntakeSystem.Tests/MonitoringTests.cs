@@ -34,10 +34,11 @@ namespace WorkIntakeSystem.Tests
             _mockConfiguration.Setup(x => x["Monitoring:Elasticsearch:Url"]).Returns("http://localhost:9200");
             _mockConfiguration.Setup(x => x["Monitoring:Logstash:Url"]).Returns("http://localhost:5044");
             _mockConfiguration.Setup(x => x["Monitoring:Kibana:Url"]).Returns("http://localhost:5601");
-            _mockConfiguration.Setup(x => x.GetValue<bool>("Monitoring:Enabled", false)).Returns(true);
+            _mockConfiguration.Setup(x => x["Monitoring:Enabled"]).Returns("true");
 
-            // Setup Redis
-            _mockRedisConnection.Setup(x => x.GetDatabase()).Returns(_mockRedisDatabase.Object);
+            // Setup Redis - Use Callback to avoid expression tree issues with optional parameters
+            _mockRedisConnection.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                .Returns(_mockRedisDatabase.Object);
         }
 
         [Fact]
@@ -246,20 +247,23 @@ namespace WorkIntakeSystem.Tests
             _mockRedisDatabase = new Mock<IDatabase>();
 
             // Setup configuration
-            _mockConfiguration.Setup(x => x.GetValue<bool>("HealthChecks:Database:Enabled", false)).Returns(true);
-            _mockConfiguration.Setup(x => x.GetValue<int>("HealthChecks:Database:IntervalSeconds", 30)).Returns(30);
-            _mockConfiguration.Setup(x => x.GetValue<bool>("HealthChecks:Redis:Enabled", false)).Returns(true);
-            _mockConfiguration.Setup(x => x.GetValue<int>("HealthChecks:Redis:IntervalSeconds", 30)).Returns(30);
-            _mockConfiguration.Setup(x => x.GetValue<bool>("HealthChecks:ExternalServices:Enabled", false)).Returns(true);
-            _mockConfiguration.Setup(x => x.GetValue<int>("HealthChecks:ExternalServices:IntervalSeconds", 60)).Returns(60);
-            _mockConfiguration.Setup(x => x.GetValue<bool>("HealthChecks:SystemResources:Enabled", false)).Returns(true);
-            _mockConfiguration.Setup(x => x.GetValue<int>("HealthChecks:SystemResources:IntervalSeconds", 30)).Returns(30);
-            _mockConfiguration.Setup(x => x.GetValue<bool>("HealthChecks:Application:Enabled", false)).Returns(true);
-            _mockConfiguration.Setup(x => x.GetValue<int>("HealthChecks:Application:IntervalSeconds", 30)).Returns(30);
+            _mockConfiguration.Setup(x => x["HealthChecks:Database:ConnectionString"]).Returns("Server=localhost;Database=TestDB;Trusted_Connection=true;");
+            _mockConfiguration.Setup(x => x["HealthChecks:Database:Enabled"]).Returns("true");
+            _mockConfiguration.Setup(x => x["HealthChecks:Database:TimeoutSeconds"]).Returns("30");
+            _mockConfiguration.Setup(x => x["HealthChecks:Redis:Enabled"]).Returns("true");
+            _mockConfiguration.Setup(x => x["HealthChecks:Redis:TimeoutSeconds"]).Returns("30");
+            _mockConfiguration.Setup(x => x["HealthChecks:ExternalServices:Enabled"]).Returns("true");
+            _mockConfiguration.Setup(x => x["HealthChecks:ExternalServices:TimeoutSeconds"]).Returns("30");
+            _mockConfiguration.Setup(x => x["HealthChecks:SystemResources:Enabled"]).Returns("true");
+            _mockConfiguration.Setup(x => x["HealthChecks:SystemResources:IntervalSeconds"]).Returns("30");
+            _mockConfiguration.Setup(x => x["HealthChecks:Application:Enabled"]).Returns("true");
+            _mockConfiguration.Setup(x => x["HealthChecks:Application:IntervalSeconds"]).Returns("30");
 
-            // Setup Redis
-            _mockRedisConnection.Setup(x => x.GetDatabase()).Returns(_mockRedisDatabase.Object);
-            _mockRedisDatabase.Setup(x => x.PingAsync()).ReturnsAsync(TimeSpan.FromMilliseconds(1));
+            // Setup Redis - Use Callback to avoid expression tree issues with optional parameters
+            _mockRedisConnection.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                .Returns(_mockRedisDatabase.Object);
+            _mockRedisDatabase.Setup(x => x.PingAsync(It.IsAny<CommandFlags>()))
+                .ReturnsAsync(TimeSpan.FromMilliseconds(1));
 
             // Setup DbContext (in-memory for testing)
             var options = new DbContextOptionsBuilder<WorkIntakeDbContext>()
@@ -595,7 +599,8 @@ namespace WorkIntakeSystem.Tests
             _mockMonitoringService = new Mock<IMonitoringService>();
 
             // Setup configuration
-            _mockConfiguration.Setup(x => x.GetValue<bool>("Monitoring:APM:Enabled", false)).Returns(true);
+            _mockConfiguration.Setup(x => x["Monitoring:APM:ServiceName"]).Returns("WorkIntakeSystem");
+            _mockConfiguration.Setup(x => x["Monitoring:APM:Enabled"]).Returns("true");
         }
 
         [Fact]

@@ -26,11 +26,11 @@ public class WindowsAuthenticationTests
         jwtSection.Setup(x => x["Secret"]).Returns("YourSuperSecretKeyHereThatIsAtLeast32CharactersLong");
         jwtSection.Setup(x => x["Issuer"]).Returns("WorkIntakeSystem");
         jwtSection.Setup(x => x["Audience"]).Returns("WorkIntakeSystem");
-        jwtSection.Setup(x => x.GetValue<int>("ExpirationHours", 24)).Returns(24);
+        jwtSection.Setup(x => x["ExpirationHours"]).Returns("24");
 
         var windowsSection = new Mock<IConfigurationSection>();
-        windowsSection.Setup(x => x.GetValue<bool>("Enabled", false)).Returns(true);
-        windowsSection.Setup(x => x.GetValue<bool>("AutoCreateUsers", true)).Returns(true);
+        windowsSection.Setup(x => x["Enabled"]).Returns("true");
+        windowsSection.Setup(x => x["AutoCreateUsers"]).Returns("true");
 
         var groupMappingSection = new Mock<IConfigurationSection>();
         groupMappingSection.Setup(x => x.Get<Dictionary<string, string>>()).Returns(new Dictionary<string, string>
