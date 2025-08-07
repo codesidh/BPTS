@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
+using WorkIntakeSystem.Core.Entities;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace WorkIntakeSystem.Tests;
@@ -86,36 +87,45 @@ public static class TestConfiguration
             // Register mock services for external dependencies
             ConfigureMockServices(services);
             
-            // Configure JWT Bearer authentication to use test settings
+            // Configure JWT Bearer authentication to use static test provider
             // This ensures both token generation and validation use the same configuration
             services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                var testJwtSecret = "test-super-secret-jwt-key-with-at-least-32-characters-for-testing";
-                var testJwtIssuer = "WorkIntakeSystem-Test";
-                var testJwtAudience = "WorkIntakeSystem-Test";
-                
                 // Create OpenIdConnectConfiguration to bypass metadata endpoint calls
                 var config = new Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration()
                 {
-                    Issuer = testJwtIssuer
+                    Issuer = JwtTokenProvider.Issuer
                 };
                 
-                // Add the signing key
-                var securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testJwtSecret));
-                config.SigningKeys.Add(securityKey);
+                // Add the signing key from our static provider
+                config.SigningKeys.Add(JwtTokenProvider.SecurityKey);
                 
                 // Set the configuration to bypass metadata download
                 options.Configuration = config;
                 
                 // Override token validation parameters to ensure consistency
-                options.TokenValidationParameters.ValidIssuer = testJwtIssuer;
-                options.TokenValidationParameters.ValidAudience = testJwtAudience;
-                options.TokenValidationParameters.IssuerSigningKey = securityKey;
+                options.TokenValidationParameters.ValidIssuer = JwtTokenProvider.Issuer;
+                options.TokenValidationParameters.ValidAudience = JwtTokenProvider.Audience;
+                options.TokenValidationParameters.IssuerSigningKey = JwtTokenProvider.SecurityKey;
                 options.TokenValidationParameters.ValidateIssuerSigningKey = true;
                 options.TokenValidationParameters.ValidateIssuer = true;
                 options.TokenValidationParameters.ValidateAudience = true;
                 options.TokenValidationParameters.ValidateLifetime = true;
                 options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
+            });
+            
+            // Override the JWT Authentication Service to use the same test settings
+            var jwtAuthDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IJwtAuthenticationService));
+            if (jwtAuthDescriptor != null)
+                services.Remove(jwtAuthDescriptor);
+                
+            services.AddScoped<IJwtAuthenticationService>(provider =>
+            {
+                var userRepository = provider.GetRequiredService<IUserRepository>();
+                var emailService = provider.GetRequiredService<IEmailService>();
+                
+                // Create a test-specific JWT service that uses the same settings as the middleware
+                return new TestJwtAuthenticationService(userRepository, emailService);
             });
             
             // Override WindowsAuthenticationService to use mock Active Directory service
@@ -225,5 +235,140 @@ public static class TestConfiguration
             => Task.FromResult(new WorkIntakeSystem.Core.Interfaces.RateLimitInfo { IsAllowed = true, Limit = int.MaxValue, Remaining = int.MaxValue, ResetTime = DateTime.UtcNow.AddMinutes(1) });
         public Task IncrementRequestCount(string clientId, string endpoint) => Task.CompletedTask;
         public Task ResetRateLimit(string clientId, string endpoint) => Task.CompletedTask;
+    }
+    
+    private class TestJwtAuthenticationService : IJwtAuthenticationService
+    {
+        private readonly IUserRepository _userRepository;
+        private readonly IEmailService _emailService;
+        
+        public TestJwtAuthenticationService(IUserRepository userRepository, IEmailService emailService)
+        {
+            _userRepository = userRepository;
+            _emailService = emailService;
+        }
+        
+        public async Task<string> GenerateJwtTokenAsync(User user)
+        {
+            var claims = new List<System.Security.Claims.Claim>
+            {
+                new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(System.Security.Claims.ClaimTypes.Name, user.Name),
+                new(System.Security.Claims.ClaimTypes.Email, user.Email),
+                new(System.Security.Claims.ClaimTypes.Role, user.Role.ToString()),
+                new("DepartmentId", user.DepartmentId.ToString()),
+                new("BusinessVerticalId", user.BusinessVerticalId.ToString())
+            };
+            
+            return JwtTokenProvider.GenerateJwtToken(claims);
+        }
+        
+        public async Task<bool> ValidateJwtTokenAsync(string token)
+        {
+            try
+            {
+                var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                tokenHandler.ValidateToken(token, new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = JwtTokenProvider.SecurityKey,
+                    ValidateIssuer = true,
+                    ValidIssuer = JwtTokenProvider.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = JwtTokenProvider.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                }, out var validatedToken);
+                
+                return validatedToken != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        public async Task<User?> GetUserFromTokenAsync(string token)
+        {
+            if (!await ValidateJwtTokenAsync(token))
+                return null;
+                
+            var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+            
+            var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email);
+            if (emailClaim == null)
+                return null;
+                
+            return await _userRepository.GetByEmailAsync(emailClaim.Value);
+        }
+        
+        public async Task<User?> ValidateUserAsync(string email, string password)
+        {
+            var user = await _userRepository.GetByEmailAsync(email);
+            if (user == null || string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(user.PasswordSalt))
+                return null;
+
+            if (VerifyPassword(password, user.PasswordHash, user.PasswordSalt))
+                return user;
+
+            return null;
+        }
+        
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            return await _userRepository.GetByEmailAsync(email);
+        }
+        
+        public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                return false;
+                
+            if (!VerifyPassword(currentPassword, user.PasswordHash, user.PasswordSalt))
+                return false;
+                
+            var (hash, salt) = HashPassword(newPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+            
+            await _userRepository.UpdateAsync(user);
+            return true;
+        }
+        
+        public async Task<bool> ResetPasswordAsync(string email)
+        {
+            // Simplified implementation for testing
+            var user = await _userRepository.GetByEmailAsync(email);
+            return user != null;
+        }
+        
+        public async Task<bool> ConfirmPasswordResetAsync(string token, string newPassword)
+        {
+            // Simplified implementation for testing
+            return false;
+        }
+        
+        public async Task<bool> IsEmailUniqueAsync(string email)
+        {
+            var user = await _userRepository.GetByEmailAsync(email);
+            return user == null;
+        }
+        
+        private static (string hash, string salt) HashPassword(string password)
+        {
+            var salt = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+            var hash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(password + salt)));
+            return (hash, salt);
+        }
+        
+        private static bool VerifyPassword(string password, string storedHash, string storedSalt)
+        {
+            var hash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(password + storedSalt)));
+            return hash == storedHash;
+        }
     }
 } 
