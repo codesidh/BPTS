@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace WorkIntakeSystem.Tests;
 
@@ -21,23 +22,27 @@ public static class TestConfiguration
 {
     public static void ConfigureTestHostBuilder(IWebHostBuilder builder)
     {
-        // Set environment variables BEFORE any configuration is loaded
-        Environment.SetEnvironmentVariable("JwtSettings__Secret", "test-super-secret-jwt-key-with-at-least-32-characters-for-testing");
-        Environment.SetEnvironmentVariable("JwtSettings__Issuer", "WorkIntakeSystem-Test");
-        Environment.SetEnvironmentVariable("JwtSettings__Audience", "WorkIntakeSystem-Test");
-        Environment.SetEnvironmentVariable("JwtSettings__ExpirationHours", "24");
+        // Define test JWT settings constants
+        const string testJwtSecret = "test-super-secret-jwt-key-with-at-least-32-characters-for-testing";
+        const string testJwtIssuer = "WorkIntakeSystem-Test";
+        const string testJwtAudience = "WorkIntakeSystem-Test";
+        const string testJwtExpirationHours = "24";
         
         builder.ConfigureAppConfiguration((context, config) =>
         {
-            // Add test JWT settings
+            // Add test JWT settings with highest priority
             var testJwtSettings = new Dictionary<string, string>
             {
-                ["JwtSettings:Secret"] = "test-super-secret-jwt-key-with-at-least-32-characters-for-testing",
-                ["JwtSettings:Issuer"] = "WorkIntakeSystem-Test",
-                ["JwtSettings:Audience"] = "WorkIntakeSystem-Test",
-                ["JwtSettings:ExpirationHours"] = "24"
+                ["JwtSettings:Secret"] = testJwtSecret,
+                ["JwtSettings:Issuer"] = testJwtIssuer,
+                ["JwtSettings:Audience"] = testJwtAudience,
+                ["JwtSettings:ExpirationHours"] = testJwtExpirationHours,
+                // Add other required configuration settings for tests
+                ["ConnectionStrings:DefaultConnection"] = "Server=(localdb)\\mssqllocaldb;Database=WorkIntakeTestDb;Trusted_Connection=true;MultipleActiveResultSets=true;",
+                ["ConnectionStrings:Redis"] = "localhost:6379"
             };
             
+            // Add test configuration first (highest priority)
             config.AddInMemoryCollection(testJwtSettings);
         });
         
@@ -81,53 +86,39 @@ public static class TestConfiguration
             // Register mock services for external dependencies
             ConfigureMockServices(services);
             
-            // Configure JWT settings for tests - use the existing JWT configuration but with test settings
-            var testJwtSecret = "test-super-secret-jwt-key-with-at-least-32-characters-for-testing";
-            var testJwtIssuer = "WorkIntakeSystem-Test";
-            var testJwtAudience = "WorkIntakeSystem-Test";
-            
-            // Configure the existing JWT bearer options with test settings
+            // Configure JWT Bearer authentication to use test settings
+            // This ensures both token generation and validation use the same configuration
             services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
+                var testJwtSecret = "test-super-secret-jwt-key-with-at-least-32-characters-for-testing";
+                var testJwtIssuer = "WorkIntakeSystem-Test";
+                var testJwtAudience = "WorkIntakeSystem-Test";
+                
+                // Create OpenIdConnectConfiguration to bypass metadata endpoint calls
+                var config = new Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration()
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testJwtSecret)),
-                    ValidateIssuer = true,
-                    ValidIssuer = testJwtIssuer,
-                    ValidateAudience = true,
-                    ValidAudience = testJwtAudience,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
+                    Issuer = testJwtIssuer
                 };
+                
+                // Add the signing key
+                var securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testJwtSecret));
+                config.SigningKeys.Add(securityKey);
+                
+                // Set the configuration to bypass metadata download
+                options.Configuration = config;
+                
+                // Override token validation parameters to ensure consistency
+                options.TokenValidationParameters.ValidIssuer = testJwtIssuer;
+                options.TokenValidationParameters.ValidAudience = testJwtAudience;
+                options.TokenValidationParameters.IssuerSigningKey = securityKey;
+                options.TokenValidationParameters.ValidateIssuerSigningKey = true;
+                options.TokenValidationParameters.ValidateIssuer = true;
+                options.TokenValidationParameters.ValidateAudience = true;
+                options.TokenValidationParameters.ValidateLifetime = true;
+                options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
             });
             
-            // Override JwtAuthenticationService with test configuration
-            var jwtAuthDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IJwtAuthenticationService));
-            if (jwtAuthDescriptor != null)
-                services.Remove(jwtAuthDescriptor);
-                
-            services.AddScoped<IJwtAuthenticationService>(provider =>
-            {
-                var userRepository = provider.GetRequiredService<IUserRepository>();
-                var emailService = provider.GetRequiredService<IEmailService>();
-                
-                // Create a new configuration with test JWT settings
-                var testConfig = new ConfigurationBuilder()
-                    .AddInMemoryCollection(new Dictionary<string, string>
-                    {
-                        ["JwtSettings:Secret"] = testJwtSecret,
-                        ["JwtSettings:Issuer"] = testJwtIssuer,
-                        ["JwtSettings:Audience"] = testJwtAudience,
-                        ["JwtSettings:ExpirationHours"] = "24"
-                    })
-                    .Build();
-                
-                return new WorkIntakeSystem.Infrastructure.Services.JwtAuthenticationService(
-                    userRepository, testConfig, emailService);
-            });
-            
-            // Also override WindowsAuthenticationService to use the same JWT settings
+            // Override WindowsAuthenticationService to use mock Active Directory service
             var windowsAuthDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IWindowsAuthenticationService));
             if (windowsAuthDescriptor != null)
                 services.Remove(windowsAuthDescriptor);
@@ -135,22 +126,10 @@ public static class TestConfiguration
             services.AddScoped<IWindowsAuthenticationService>(provider =>
             {
                 var userRepository = provider.GetRequiredService<IUserRepository>();
-                var emailService = provider.GetRequiredService<IEmailService>();
-                
-                // Create a new configuration with test JWT settings
-                var testConfig = new ConfigurationBuilder()
-                    .AddInMemoryCollection(new Dictionary<string, string>
-                    {
-                        ["JwtSettings:Secret"] = testJwtSecret,
-                        ["JwtSettings:Issuer"] = testJwtIssuer,
-                        ["JwtSettings:Audience"] = testJwtAudience,
-                        ["JwtSettings:ExpirationHours"] = "24"
-                    })
-                    .Build();
-                
+                var configuration = provider.GetRequiredService<IConfiguration>();
                 var mockAdService = new Mock<IActiveDirectoryService>();
                 return new WorkIntakeSystem.Infrastructure.Services.WindowsAuthenticationService(
-                    userRepository, mockAdService.Object, testConfig);
+                    userRepository, mockAdService.Object, configuration);
             });
         });
     }

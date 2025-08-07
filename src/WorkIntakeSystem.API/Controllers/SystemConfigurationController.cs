@@ -24,6 +24,25 @@ public class SystemConfigurationController : ControllerBase
     }
 
     /// <summary>
+    /// Get all system configurations
+    /// </summary>
+    [HttpGet]
+    [RequirePermission("SystemConfiguration:Read")]
+    public async Task<IActionResult> GetAllConfigurations()
+    {
+        try
+        {
+            var configurations = await _configurationService.GetAllConfigurationsAsync();
+            return Ok(configurations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all configurations");
+            return StatusCode(500, "An error occurred while retrieving configurations");
+        }
+    }
+
+    /// <summary>
     /// Get configuration value by key
     /// </summary>
     [HttpGet("{key}")]

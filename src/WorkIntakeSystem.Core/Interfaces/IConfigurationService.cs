@@ -9,6 +9,9 @@ namespace WorkIntakeSystem.Core.Interfaces
         Task<string?> GetValueAsync(string key, int? businessVerticalId = null, int? version = null);
         Task<T?> GetValueAsync<T>(string key, int? businessVerticalId = null, int? version = null);
 
+        // Get all configurations
+        Task<IEnumerable<SystemConfiguration>> GetAllConfigurationsAsync();
+
         // Configuration Versioning
         Task<SystemConfiguration> CreateNewVersionAsync(string key, string newValue, string changeReason, int? businessVerticalId = null, string approvedBy = "System");
         Task<IEnumerable<SystemConfiguration>> GetVersionHistoryAsync(string key, int? businessVerticalId = null);

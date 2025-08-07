@@ -80,6 +80,19 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
+        public async Task<IEnumerable<SystemConfiguration>> GetAllConfigurationsAsync()
+        {
+            try
+            {
+                return await _configRepo.GetAllAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all configurations");
+                return Enumerable.Empty<SystemConfiguration>();
+            }
+        }
+
         // Configuration Versioning
         public async Task<SystemConfiguration> CreateNewVersionAsync(string key, string newValue, string changeReason, int? businessVerticalId = null, string approvedBy = "System")
         {

@@ -32,6 +32,7 @@ namespace WorkIntakeSystem.Infrastructure.Repositories
         // General queries
         Task<IEnumerable<SystemConfiguration>> GetAllByKeyAsync(string key);
         Task<SystemConfiguration?> GetByIdAsync(int id);
+        Task<IEnumerable<SystemConfiguration>> GetAllAsync();
     }
 
     public class SystemConfigurationRepository : ISystemConfigurationRepository
@@ -213,6 +214,15 @@ namespace WorkIntakeSystem.Infrastructure.Repositories
                 .Include(c => c.BusinessVertical)
                 .Include(c => c.PreviousVersion)
                 .FirstOrDefaultAsync(c => c.Id == id);
+        }
+
+        public async Task<IEnumerable<SystemConfiguration>> GetAllAsync()
+        {
+            return await _context.SystemConfigurations
+                .Include(c => c.BusinessVertical)
+                .Include(c => c.PreviousVersion)
+                .OrderByDescending(c => c.Version)
+                .ToListAsync();
         }
     }
 } 

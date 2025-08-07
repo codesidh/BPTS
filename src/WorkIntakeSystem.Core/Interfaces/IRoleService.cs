@@ -11,6 +11,7 @@ public interface IRoleService
     Task<List<UserRole>> GetUserRolesAsync(int userId);
     Task<bool> IsInRoleAsync(int userId, UserRole role);
     Task<bool> IsInAnyRoleAsync(int userId, params UserRole[] roles);
+    Task<List<string>> GetAllPermissionsAsync();
 }
 
 public static class Permissions

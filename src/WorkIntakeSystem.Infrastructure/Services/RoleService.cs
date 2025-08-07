@@ -100,6 +100,11 @@ public class RoleService : IRoleService
         return user != null && roles.Contains(user.Role);
     }
 
+    public async Task<List<string>> GetAllPermissionsAsync()
+    {
+        return GetAllPermissions();
+    }
+
     private static List<string> GetPermissionsForRole(UserRole role)
     {
         return role switch

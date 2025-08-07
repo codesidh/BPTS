@@ -21,6 +21,33 @@ public class RoleController : ControllerBase
         _userRepository = userRepository;
     }
 
+    /// <summary>
+    /// Get all roles and permissions information
+    /// </summary>
+    [HttpGet]
+    [RequirePermission("user.read")]
+    public async Task<IActionResult> GetAllRoles()
+    {
+        try
+        {
+            var availableRoles = Enum.GetValues<UserRole>()
+                .Select(r => new { Value = (int)r, Name = r.ToString() })
+                .ToList();
+
+            var allPermissions = await _roleService.GetAllPermissionsAsync();
+            
+            return Ok(new 
+            { 
+                AvailableRoles = availableRoles,
+                AllPermissions = allPermissions
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "An error occurred while retrieving roles information");
+        }
+    }
+
     [HttpPost("assign")]
     [RequirePermission("user.assignrole")]
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto request)
