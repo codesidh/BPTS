@@ -22,19 +22,8 @@ public class ComprehensiveAuthTests : IClassFixture<WebApplicationFactory<Progra
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<WorkIntakeDbContext>));
-
-                if (descriptor != null)
-                    services.Remove(descriptor);
-
-                services.AddDbContext<WorkIntakeDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("ComprehensiveAuthTestDb");
-                });
-            });
+            // Configure test host builder with JWT settings and service overrides
+            TestConfiguration.ConfigureTestHostBuilder(builder);
         });
 
         _client = _factory.CreateClient();

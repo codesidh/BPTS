@@ -21,22 +21,8 @@ namespace WorkIntakeSystem.Tests
         {
             _factory = factory.WithWebHostBuilder(builder =>
             {
-                builder.ConfigureServices(services =>
-                {
-                    // Replace the database with an in-memory database for testing
-                    var descriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(DbContextOptions<WorkIntakeDbContext>));
-
-                    if (descriptor != null)
-                    {
-                        services.Remove(descriptor);
-                    }
-
-                    services.AddDbContext<WorkIntakeDbContext>(options =>
-                    {
-                        options.UseInMemoryDatabase("TestDatabase");
-                    });
-                });
+                // Configure test host builder with JWT settings and service overrides
+                TestConfiguration.ConfigureTestHostBuilder(builder);
             });
 
             _client = _factory.CreateClient();

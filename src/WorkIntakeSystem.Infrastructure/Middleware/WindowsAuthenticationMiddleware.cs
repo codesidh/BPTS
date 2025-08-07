@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using WorkIntakeSystem.Core.Interfaces;
 
 namespace WorkIntakeSystem.Infrastructure.Middleware;
@@ -6,14 +7,10 @@ namespace WorkIntakeSystem.Infrastructure.Middleware;
 public class WindowsAuthenticationMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IWindowsAuthenticationService _windowsAuthService;
 
-    public WindowsAuthenticationMiddleware(
-        RequestDelegate next,
-        IWindowsAuthenticationService windowsAuthService)
+    public WindowsAuthenticationMiddleware(RequestDelegate next)
     {
         _next = next;
-        _windowsAuthService = windowsAuthService;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -29,7 +26,9 @@ public class WindowsAuthenticationMiddleware
             {
                 try
                 {
-                    var authResult = await _windowsAuthService.AuthenticateWindowsUserAsync(windowsIdentity);
+                    // Resolve the service from the current scope
+                    var windowsAuthService = context.RequestServices.GetRequiredService<IWindowsAuthenticationService>();
+                    var authResult = await windowsAuthService.AuthenticateWindowsUserAsync(windowsIdentity);
                     
                     if (authResult.IsAuthenticated && authResult.JwtToken != null)
                     {

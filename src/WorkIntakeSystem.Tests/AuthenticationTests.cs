@@ -23,19 +23,8 @@ public class AuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<WorkIntakeDbContext>));
-
-                if (descriptor != null)
-                    services.Remove(descriptor);
-
-                services.AddDbContext<WorkIntakeDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("TestAuthDb");
-                });
-            });
+            // Configure test host builder with JWT settings and service overrides
+            TestConfiguration.ConfigureTestHostBuilder(builder);
         });
 
         _client = _factory.CreateClient();

@@ -29,6 +29,9 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
+            // Configure test host builder with JWT settings and service overrides
+            TestConfiguration.ConfigureTestHostBuilder(builder);
+            
             builder.ConfigureServices(services =>
             {
                 // Add test authentication
@@ -38,9 +41,6 @@ public class Phase4IntegrationTests : IClassFixture<WebApplicationFactory<Progra
                 
                 // Override policy evaluator for testing
                 services.AddSingleton<IPolicyEvaluator, FakePolicyEvaluator>();
-                
-                // Configure test services with real database and Redis
-                TestConfiguration.ConfigureTestServices(services, new ConfigurationBuilder().Build());
                 
                 // Mock services for testing
                 services.AddScoped<IMicrosoft365Service, MockMicrosoft365Service>();

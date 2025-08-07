@@ -20,19 +20,8 @@ public class ProtectedEndpointsTests : IClassFixture<WebApplicationFactory<Progr
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<WorkIntakeDbContext>));
-
-                if (descriptor != null)
-                    services.Remove(descriptor);
-
-                services.AddDbContext<WorkIntakeDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("ProtectedEndpointsTestDb");
-                });
-            });
+            // Configure test host builder with JWT settings and service overrides
+            TestConfiguration.ConfigureTestHostBuilder(builder);
         });
 
         _client = _factory.CreateClient();

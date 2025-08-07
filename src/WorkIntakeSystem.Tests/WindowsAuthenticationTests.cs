@@ -12,42 +12,35 @@ public class WindowsAuthenticationTests
 {
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IActiveDirectoryService> _mockAdService;
-    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly IConfiguration _configuration;
     private readonly WindowsAuthenticationService _windowsAuthService;
 
     public WindowsAuthenticationTests()
     {
         _mockUserRepository = new Mock<IUserRepository>();
         _mockAdService = new Mock<IActiveDirectoryService>();
-        _mockConfiguration = new Mock<IConfiguration>();
-
-        // Setup configuration
-        var jwtSection = new Mock<IConfigurationSection>();
-        jwtSection.Setup(x => x["Secret"]).Returns("YourSuperSecretKeyHereThatIsAtLeast32CharactersLong");
-        jwtSection.Setup(x => x["Issuer"]).Returns("WorkIntakeSystem");
-        jwtSection.Setup(x => x["Audience"]).Returns("WorkIntakeSystem");
-        jwtSection.Setup(x => x["ExpirationHours"]).Returns("24");
-
-        var windowsSection = new Mock<IConfigurationSection>();
-        windowsSection.Setup(x => x["Enabled"]).Returns("true");
-        windowsSection.Setup(x => x["AutoCreateUsers"]).Returns("true");
-
-        var groupMappingSection = new Mock<IConfigurationSection>();
-        groupMappingSection.Setup(x => x.Get<Dictionary<string, string>>()).Returns(new Dictionary<string, string>
+        
+        // Setup configuration using a real configuration object
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string>
         {
-            ["IT-Admins"] = "Administrator",
-            ["Department-Heads"] = "Manager",
-            ["End-Users"] = "EndUser"
+            ["JwtSettings:Secret"] = "YourSuperSecretKeyHereThatIsAtLeast32CharactersLong",
+            ["JwtSettings:Issuer"] = "WorkIntakeSystem",
+            ["JwtSettings:Audience"] = "WorkIntakeSystem",
+            ["JwtSettings:ExpirationHours"] = "24",
+            ["Authentication:Windows:Enabled"] = "true",
+            ["Authentication:Windows:AutoCreateUsers"] = "true",
+            ["Authentication:Windows:GroupMapping:IT-Admins"] = "SystemAdministrator",
+            ["Authentication:Windows:GroupMapping:Department-Heads"] = "Manager",
+            ["Authentication:Windows:GroupMapping:End-Users"] = "EndUser"
         });
-
-        _mockConfiguration.Setup(x => x.GetSection("JwtSettings")).Returns(jwtSection.Object);
-        _mockConfiguration.Setup(x => x.GetSection("Authentication:Windows")).Returns(windowsSection.Object);
-        _mockConfiguration.Setup(x => x.GetSection("Authentication:Windows:GroupMapping")).Returns(groupMappingSection.Object);
+        
+        _configuration = configurationBuilder.Build();
 
         _windowsAuthService = new WindowsAuthenticationService(
             _mockUserRepository.Object,
             _mockAdService.Object,
-            _mockConfiguration.Object);
+            _configuration);
     }
 
     [Fact]
