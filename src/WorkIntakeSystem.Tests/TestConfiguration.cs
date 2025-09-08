@@ -87,31 +87,25 @@ public static class TestConfiguration
             // Register mock services for external dependencies
             ConfigureMockServices(services);
             
-            // Configure JWT Bearer authentication to use static test provider
-            // This ensures both token generation and validation use the same configuration
+            // Configure JWT Bearer authentication to use our test settings
+            // This overrides the existing JWT Bearer configuration with our test settings
             services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                // Create OpenIdConnectConfiguration to bypass metadata endpoint calls
-                var config = new Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectConfiguration()
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    Issuer = JwtTokenProvider.Issuer
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = JwtTokenProvider.SecurityKey,
+                    ValidateIssuer = true,
+                    ValidIssuer = JwtTokenProvider.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = JwtTokenProvider.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
                 };
                 
-                // Add the signing key from our static provider
-                config.SigningKeys.Add(JwtTokenProvider.SecurityKey);
-                
-                // Set the configuration to bypass metadata download
-                options.Configuration = config;
-                
-                // Override token validation parameters to ensure consistency
-                options.TokenValidationParameters.ValidIssuer = JwtTokenProvider.Issuer;
-                options.TokenValidationParameters.ValidAudience = JwtTokenProvider.Audience;
-                options.TokenValidationParameters.IssuerSigningKey = JwtTokenProvider.SecurityKey;
-                options.TokenValidationParameters.ValidateIssuerSigningKey = true;
-                options.TokenValidationParameters.ValidateIssuer = true;
-                options.TokenValidationParameters.ValidateAudience = true;
-                options.TokenValidationParameters.ValidateLifetime = true;
-                options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
+                // Disable metadata endpoint calls
+                options.MetadataAddress = null;
+                options.RequireHttpsMetadata = false;
             });
             
             // Override the JWT Authentication Service to use the same test settings
