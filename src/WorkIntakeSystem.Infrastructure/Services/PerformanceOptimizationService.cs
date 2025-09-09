@@ -141,7 +141,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Performance Analysis
 
-        public async Task<PerformanceAnalysis> AnalyzePerformanceAsync(string operation, TimeSpan timeWindow)
+        public async Task<WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis> AnalyzePerformanceAsync(string operation, TimeSpan timeWindow)
         {
             try
             {
@@ -154,7 +154,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
                 if (!metrics.Any())
                 {
-                    return new PerformanceAnalysis
+                    return new WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis
                     {
                         Operation = operation,
                         TimeWindow = timeWindow,
@@ -166,7 +166,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 var throughputMetrics = metrics.Where(m => m.Name.Contains("throughput")).ToList();
                 var errorRateMetrics = metrics.Where(m => m.Name.Contains("error_rate")).ToList();
 
-                var analysis = new PerformanceAnalysis
+                var analysis = new WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis
                 {
                     Operation = operation,
                     TimeWindow = timeWindow,
@@ -199,7 +199,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error analyzing performance for operation: {Operation}", operation);
-                return new PerformanceAnalysis
+                return new WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis
                 {
                     Operation = operation,
                     TimeWindow = timeWindow,
@@ -209,11 +209,11 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task<List<PerformanceRecommendation>> GetPerformanceRecommendationsAsync(string operation)
+        public async Task<List<WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation>> GetPerformanceRecommendationsAsync(string operation)
         {
             try
             {
-                var recommendations = new List<PerformanceRecommendation>();
+                var recommendations = new List<WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation>();
                 var analysis = await AnalyzePerformanceAsync(operation, TimeSpan.FromHours(1));
 
                 if (analysis.Status != "Analyzed")
@@ -224,7 +224,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 // Response time recommendations
                 if (analysis.AverageResponseTime > 1000)
                 {
-                    recommendations.Add(new PerformanceRecommendation
+                    recommendations.Add(new WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation
                     {
                         Type = "Response Time",
                         Priority = "High",
@@ -236,7 +236,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 }
                 else if (analysis.AverageResponseTime > 500)
                 {
-                    recommendations.Add(new PerformanceRecommendation
+                    recommendations.Add(new WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation
                     {
                         Type = "Response Time",
                         Priority = "Medium",
@@ -250,7 +250,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 // Throughput recommendations
                 if (analysis.AverageThroughput < 10)
                 {
-                    recommendations.Add(new PerformanceRecommendation
+                    recommendations.Add(new WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation
                     {
                         Type = "Throughput",
                         Priority = "High",
@@ -264,7 +264,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 // Error rate recommendations
                 if (analysis.AverageErrorRate > 5)
                 {
-                    recommendations.Add(new PerformanceRecommendation
+                    recommendations.Add(new WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation
                     {
                         Type = "Error Rate",
                         Priority = "High",
@@ -278,7 +278,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 // 95th percentile recommendations
                 if (analysis.Percentile95 > 2000)
                 {
-                    recommendations.Add(new PerformanceRecommendation
+                    recommendations.Add(new WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation
                     {
                         Type = "Response Time Distribution",
                         Priority = "Medium",
@@ -296,7 +296,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating performance recommendations for operation: {Operation}", operation);
-                return new List<PerformanceRecommendation>();
+                return new List<WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation>();
             }
         }
 
@@ -333,7 +333,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task<PerformanceReport> GeneratePerformanceReportAsync(TimeSpan timeWindow)
+        public async Task<WorkIntakeSystem.Core.Interfaces.PerformanceReport> GeneratePerformanceReportAsync(TimeSpan timeWindow)
         {
             try
             {
@@ -346,12 +346,12 @@ namespace WorkIntakeSystem.Infrastructure.Services
                     .Distinct()
                     .ToList();
 
-                var report = new PerformanceReport
+                var report = new WorkIntakeSystem.Core.Interfaces.PerformanceReport
                 {
                     StartTime = startTime,
                     EndTime = endTime,
                     TimeWindow = timeWindow,
-                    Operations = new List<PerformanceAnalysis>()
+                    Operations = new List<WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis>()
                 };
 
                 foreach (var operation in operations)
@@ -374,7 +374,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating performance report");
-                return new PerformanceReport
+                return new WorkIntakeSystem.Core.Interfaces.PerformanceReport
                 {
                     StartTime = DateTime.UtcNow - timeWindow,
                     EndTime = DateTime.UtcNow,
@@ -509,7 +509,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             return sortedValues[Math.Max(0, Math.Min(index, sortedValues.Count - 1))];
         }
 
-        private string DeterminePerformanceStatus(PerformanceAnalysis analysis)
+        private string DeterminePerformanceStatus(WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis analysis)
         {
             if (analysis.AverageErrorRate > 10)
                 return "Critical";
@@ -522,7 +522,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             return "Excellent";
         }
 
-        private string DetermineOverallPerformanceStatus(List<PerformanceAnalysis> analyses)
+        private string DetermineOverallPerformanceStatus(List<WorkIntakeSystem.Core.Interfaces.PerformanceAnalysis> analyses)
         {
             if (analyses.Any(a => a.PerformanceStatus == "Critical"))
                 return "Critical";
@@ -545,7 +545,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             return metricName;
         }
 
-        private async Task ApplyOptimizationAsync(string operation, PerformanceRecommendation recommendation)
+        private async Task ApplyOptimizationAsync(string operation, WorkIntakeSystem.Core.Interfaces.PerformanceRecommendation recommendation)
         {
             try
             {
@@ -623,49 +623,6 @@ namespace WorkIntakeSystem.Infrastructure.Services
         public string Severity { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public string Message { get; set; } = string.Empty;
-    }
-
-    public class PerformanceAnalysis
-    {
-        public string Operation { get; set; } = string.Empty;
-        public TimeSpan TimeWindow { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public int TotalRequests { get; set; }
-        public double AverageResponseTime { get; set; }
-        public double MinResponseTime { get; set; }
-        public double MaxResponseTime { get; set; }
-        public double Percentile95 { get; set; }
-        public double Percentile99 { get; set; }
-        public double AverageThroughput { get; set; }
-        public double AverageErrorRate { get; set; }
-        public string PerformanceStatus { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string ErrorMessage { get; set; } = string.Empty;
-    }
-
-    public class PerformanceRecommendation
-    {
-        public string Type { get; set; } = string.Empty;
-        public string Priority { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Recommendation { get; set; } = string.Empty;
-        public string Impact { get; set; } = string.Empty;
-        public string Effort { get; set; } = string.Empty;
-    }
-
-    public class PerformanceReport
-    {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public TimeSpan TimeWindow { get; set; }
-        public List<PerformanceAnalysis> Operations { get; set; } = new();
-        public string OverallStatus { get; set; } = string.Empty;
-        public int TotalOperations { get; set; }
-        public double AverageResponseTime { get; set; }
-        public double AverageThroughput { get; set; }
-        public double AverageErrorRate { get; set; }
-        public string ErrorMessage { get; set; } = string.Empty;
     }
 
     #endregion

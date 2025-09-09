@@ -25,6 +25,14 @@ public class WorkIntakeDbContext : DbContext
     public DbSet<WorkflowStageConfiguration> WorkflowStages { get; set; }
     public DbSet<WorkflowTransition> WorkflowTransitions { get; set; }
     public DbSet<PriorityConfiguration> PriorityConfigurations { get; set; }
+    
+    // Security Monitoring Entities
+    public DbSet<SecurityEvent> SecurityEvents { get; set; }
+    public DbSet<SecurityThreat> SecurityThreats { get; set; }
+    public DbSet<ComplianceViolation> ComplianceViolations { get; set; }
+    public DbSet<SecurityIncident> SecurityIncidents { get; set; }
+    public DbSet<SecurityAlert> SecurityAlerts { get; set; }
+    public DbSet<SecurityAuditLog> SecurityAuditLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +54,7 @@ public class WorkIntakeDbContext : DbContext
         ConfigureWorkflowStageConfiguration(modelBuilder);
         ConfigureWorkflowTransition(modelBuilder);
         ConfigurePriorityConfiguration(modelBuilder);
+        ConfigureSecurityEntities(modelBuilder);
         
         // Seed initial data
         SeedInitialData(modelBuilder);
@@ -424,6 +433,137 @@ public class WorkIntakeDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(pc => pc.BusinessVerticalId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureSecurityEntities(ModelBuilder modelBuilder)
+    {
+        // Configure SecurityEvent
+        modelBuilder.Entity<SecurityEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EventType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.IPAddress).IsRequired().HasMaxLength(45);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.Property(e => e.SessionId).HasMaxLength(50);
+            entity.Property(e => e.Resource).HasMaxLength(200);
+            entity.Property(e => e.Action).HasMaxLength(100);
+            entity.Property(e => e.Details).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.CorrelationId).HasMaxLength(50);
+            entity.Property(e => e.Metadata).HasColumnType("nvarchar(max)").HasDefaultValue("{}");
+            
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.EventType);
+            entity.HasIndex(e => e.IsSuspicious);
+        });
+
+        // Configure SecurityThreat
+        modelBuilder.Entity<SecurityThreat>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ThreatType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.SourceIP).HasMaxLength(45);
+            entity.Property(e => e.TargetResource).HasMaxLength(200);
+            entity.Property(e => e.MitigationSteps).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ResolvedBy).HasMaxLength(100);
+            entity.Property(e => e.ResolutionNotes).HasColumnType("nvarchar(max)");
+            
+            entity.HasIndex(e => e.DetectedAt);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Severity);
+        });
+
+        // Configure ComplianceViolation
+        modelBuilder.Entity<ComplianceViolation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Framework).IsRequired();
+            entity.Property(e => e.Requirement).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.Resource).HasMaxLength(200);
+            entity.Property(e => e.UserId).HasMaxLength(50);
+            entity.Property(e => e.ResolvedBy).HasMaxLength(100);
+            entity.Property(e => e.ResolutionNotes).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Evidence).HasColumnType("nvarchar(max)");
+            
+            entity.HasIndex(e => e.Framework);
+            entity.HasIndex(e => e.DetectedAt);
+            entity.HasIndex(e => e.IsResolved);
+        });
+
+        // Configure SecurityIncident
+        modelBuilder.Entity<SecurityIncident>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired().HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Open");
+            entity.Property(e => e.AssignedTo).HasMaxLength(100);
+            entity.Property(e => e.ResolutionNotes).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Impact).HasMaxLength(50);
+            entity.Property(e => e.AffectedResources).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.IncidentType).HasMaxLength(50);
+            entity.Property(e => e.Priority).HasMaxLength(50).HasDefaultValue("Medium");
+            entity.Property(e => e.InvestigationNotes).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.LastUpdatedBy).HasMaxLength(100);
+            
+            entity.HasIndex(e => e.DetectedAt);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Severity);
+        });
+
+        // Configure SecurityAlert
+        modelBuilder.Entity<SecurityAlert>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AlertType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired().HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Active");
+            entity.Property(e => e.AcknowledgedBy).HasMaxLength(100);
+            entity.Property(e => e.Source).HasMaxLength(100);
+            entity.Property(e => e.Metadata).HasColumnType("nvarchar(max)").HasDefaultValue("{}");
+            entity.Property(e => e.Category).HasMaxLength(50);
+            entity.Property(e => e.ActionRequired).HasMaxLength(200);
+            entity.Property(e => e.EscalatedTo).HasMaxLength(100);
+            
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Severity);
+        });
+
+        // Configure SecurityAuditLog
+        modelBuilder.Entity<SecurityAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Resource).HasMaxLength(200);
+            entity.Property(e => e.IPAddress).HasMaxLength(45);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.Property(e => e.Result).HasMaxLength(20);
+            entity.Property(e => e.Details).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.SessionId).HasMaxLength(50);
+            entity.Property(e => e.CorrelationId).HasMaxLength(50);
+            entity.Property(e => e.Severity).HasMaxLength(20).HasDefaultValue("Medium");
+            entity.Property(e => e.RequestData).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ResponseData).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Endpoint).HasMaxLength(100);
+            entity.Property(e => e.HttpMethod).HasMaxLength(20);
+            
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Action);
         });
     }
 

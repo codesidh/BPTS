@@ -205,6 +205,9 @@ builder.Services.AddScoped<IApplicationPerformanceMonitoringService, Application
 builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 
+// Register Security Monitoring services
+builder.Services.AddScoped<ISecurityMonitoringService, SecurityMonitoringService>();
+
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
 
@@ -256,6 +259,9 @@ app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.ApiGatewayMiddlewar
 
 // Add Windows Authentication middleware
 app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.WindowsAuthenticationMiddleware>();
+
+// Add Security Monitoring middleware
+app.UseMiddleware<WorkIntakeSystem.Infrastructure.Middleware.SecurityMonitoringMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
