@@ -203,6 +203,7 @@ builder.Services.AddScoped<IMonitoringService, MonitoringService>();
 builder.Services.AddScoped<IElasticsearchService, ElasticsearchService>();
 builder.Services.AddScoped<IApplicationPerformanceMonitoringService, ApplicationPerformanceMonitoringService>();
 builder.Services.AddScoped<IHealthCheckService, HealthCheckService>();
+builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 
 // Register HttpClient for external integrations
 builder.Services.AddHttpClient();
