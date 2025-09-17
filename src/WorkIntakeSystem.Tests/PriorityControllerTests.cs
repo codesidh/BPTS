@@ -71,7 +71,7 @@ namespace WorkIntakeSystem.Tests
                 .ReturnsAsync(workRequest);
 
             _mockPriorityRepository.Setup(x => x.GetByWorkRequestAndDepartmentAsync(1, 1))
-                .ReturnsAsync((Priority?)null);
+                .ReturnsAsync((Priority)null);
 
             _mockPriorityRepository.Setup(x => x.CreateAsync(It.IsAny<Priority>()))
                 .ReturnsAsync(new Priority());
@@ -100,7 +100,7 @@ namespace WorkIntakeSystem.Tests
             };
 
             _mockWorkRequestRepository.Setup(x => x.GetByIdAsync(999))
-                .ReturnsAsync((WorkRequest?)null);
+                .ReturnsAsync((WorkRequest)null);
 
             // Act
             var result = await _controller.SubmitVote(request);
@@ -213,7 +213,7 @@ namespace WorkIntakeSystem.Tests
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var pendingVotesResult = Assert.IsType<IEnumerable<PendingVote>>(okResult.Value);
+            var pendingVotesResult = Assert.IsAssignableFrom<IEnumerable<PendingVote>>(okResult.Value);
             var pendingVotesList = pendingVotesResult.ToList();
             
             Assert.Equal(2, pendingVotesList.Count);
@@ -320,7 +320,7 @@ namespace WorkIntakeSystem.Tests
             };
 
             _mockPriorityRepository.Setup(x => x.GetByWorkRequestAndDepartmentAsync(workRequestId, 1))
-                .ReturnsAsync((Priority?)null);
+                .ReturnsAsync((Priority)null);
 
             // Act
             var result = await _controller.UpdateVote(workRequestId, request);

@@ -734,8 +734,8 @@ public class MockMobileAccessibilityService : IMobileAccessibilityService
 // Test authentication helpers
 public class TestAuthenticationSchemeHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock) { }
+    public TestAuthenticationSchemeHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+        : base(options, logger, encoder) { }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -772,7 +772,7 @@ public class FakePolicyEvaluator : IPolicyEvaluator
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    public Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object? resource)
+    public Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object resource)
     {
         return Task.FromResult(PolicyAuthorizationResult.Success());
     }

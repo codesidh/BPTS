@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;
@@ -43,7 +44,7 @@ namespace WorkIntakeSystem.Tests.LoadTesting
             builder.UseEnvironment("Testing");
         }
 
-        public HttpClient CreateClient()
+        public new HttpClient CreateClient()
         {
             var client = base.CreateClient();
             
@@ -57,13 +58,13 @@ namespace WorkIntakeSystem.Tests.LoadTesting
             return client;
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected new virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {

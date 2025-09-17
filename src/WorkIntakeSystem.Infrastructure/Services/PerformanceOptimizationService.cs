@@ -37,7 +37,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Performance Monitoring
 
-        public async Task TrackPerformanceMetricAsync(string metricName, double value, Dictionary<string, string> tags = null)
+        public async Task TrackPerformanceMetricAsync(string metricName, double value, Dictionary<string, string>? tags = null)
         {
             try
             {
@@ -72,7 +72,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackResponseTimeAsync(string operation, long responseTimeMs, Dictionary<string, string> tags = null)
+        public async Task TrackResponseTimeAsync(string operation, long responseTimeMs, Dictionary<string, string>? tags = null)
         {
             try
             {
@@ -94,7 +94,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackThroughputAsync(string operation, int requestCount, TimeSpan duration, Dictionary<string, string> tags = null)
+        public async Task TrackThroughputAsync(string operation, int requestCount, TimeSpan duration, Dictionary<string, string>? tags = null)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackErrorRateAsync(string operation, int errorCount, int totalCount, Dictionary<string, string> tags = null)
+        public async Task TrackErrorRateAsync(string operation, int errorCount, int totalCount, Dictionary<string, string>? tags = null)
         {
             try
             {

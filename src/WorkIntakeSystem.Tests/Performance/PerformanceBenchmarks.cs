@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using WorkIntakeSystem.Tests.LoadTesting;
 
 namespace WorkIntakeSystem.Tests.Performance
 {

@@ -58,7 +58,7 @@ public class WindowsAuthenticationTests
         };
 
         _mockUserRepository.Setup(x => x.GetByWindowsIdentityAsync(windowsIdentity))
-            .ReturnsAsync((User?)null);
+            .ReturnsAsync((User)null);
 
         _mockAdService.Setup(x => x.GetUserFromActiveDirectoryAsync(windowsIdentity))
             .ReturnsAsync(mockAdUser);
@@ -151,7 +151,7 @@ public class WindowsAuthenticationTests
         };
 
         _mockUserRepository.Setup(x => x.GetByWindowsIdentityAsync(windowsIdentity))
-            .ReturnsAsync((User?)null);
+            .ReturnsAsync((User)null);
 
         _mockAdService.Setup(x => x.GetUserFromActiveDirectoryAsync(windowsIdentity))
             .ReturnsAsync(mockAdUser);
@@ -262,7 +262,7 @@ public class WindowsAuthenticationTests
         };
 
         _mockUserRepository.Setup(x => x.GetByWindowsIdentityAsync(windowsIdentity))
-            .ReturnsAsync((User?)null);
+            .ReturnsAsync((User)null);
 
         _mockAdService.Setup(x => x.GetUserFromActiveDirectoryAsync(windowsIdentity))
             .ReturnsAsync(mockAdUser);

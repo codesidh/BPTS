@@ -46,12 +46,12 @@ namespace WorkIntakeSystem.Infrastructure.Services
                 }
                 
                 // Fallback to appsettings
-                return _appSettings[key];
+                return _appSettings[key] ?? null;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting configuration value for key {Key}", key);
-                return _appSettings[key];
+                return _appSettings[key] ?? null;
             }
         }
 

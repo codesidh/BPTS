@@ -65,7 +65,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Tracked event")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Incremented counter")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -198,7 +198,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Set gauge")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
 
         [Fact]
@@ -225,7 +225,7 @@ namespace WorkIntakeSystem.Tests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Recorded histogram")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
         }
     }
 

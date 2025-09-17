@@ -141,7 +141,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Application Performance Monitoring
 
-        public async Task TrackMetricAsync(string metricName, double value, Dictionary<string, string> tags = null)
+        public async Task TrackMetricAsync(string metricName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_monitoringEnabled) return;
 
@@ -189,7 +189,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackExceptionAsync(Exception exception, Dictionary<string, string> properties = null)
+        public async Task TrackExceptionAsync(Exception exception, Dictionary<string, string>? properties = null)
         {
             if (!_monitoringEnabled) return;
 
@@ -214,7 +214,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackEventAsync(string eventName, Dictionary<string, string> properties = null)
+        public async Task TrackEventAsync(string eventName, Dictionary<string, string>? properties = null)
         {
             if (!_monitoringEnabled) return;
 
@@ -462,7 +462,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Custom Metrics
 
-        public async Task IncrementCounterAsync(string counterName, Dictionary<string, string> tags = null)
+        public async Task IncrementCounterAsync(string counterName, Dictionary<string, string>? tags = null)
         {
             if (!_monitoringEnabled) return;
 
@@ -486,7 +486,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task SetGaugeAsync(string gaugeName, double value, Dictionary<string, string> tags = null)
+        public async Task SetGaugeAsync(string gaugeName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_monitoringEnabled) return;
 
@@ -509,7 +509,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task RecordHistogramAsync(string histogramName, double value, Dictionary<string, string> tags = null)
+        public async Task RecordHistogramAsync(string histogramName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_monitoringEnabled) return;
 

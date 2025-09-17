@@ -27,7 +27,7 @@ namespace WorkIntakeSystem.Tests
         public async Task FallsBackToAppSettingsIfNotInDatabase()
         {
             var repo = new Mock<ISystemConfigurationRepository>();
-            repo.Setup(r => r.GetLatestActiveAsync("TestKey", null)).ReturnsAsync((WorkIntakeSystem.Core.Entities.SystemConfiguration?)null);
+            repo.Setup(r => r.GetLatestActiveAsync("TestKey", null)).ReturnsAsync((WorkIntakeSystem.Core.Entities.SystemConfiguration)null);
             var config = new ConfigurationBuilder().AddInMemoryCollection(new[] { new System.Collections.Generic.KeyValuePair<string, string>("TestKey", "appsettings-value") }).Build();
             var mockLogger = new Mock<ILogger<ConfigurationService>>();
             var service = new ConfigurationService(repo.Object, config, mockLogger.Object);

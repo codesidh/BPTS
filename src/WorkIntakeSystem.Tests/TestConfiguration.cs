@@ -77,7 +77,7 @@ public static class TestConfiguration
             // Register mock Redis connection
             var mockRedis = new Mock<IConnectionMultiplexer>();
             var mockDb = new Mock<IDatabase>();
-            mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
+            mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
                      .Returns(mockDb.Object);
             services.AddSingleton<IConnectionMultiplexer>(mockRedis.Object);
             
@@ -144,7 +144,7 @@ public static class TestConfiguration
         var mockRedis = new Mock<IConnectionMultiplexer>();
         // Setup commonly used members to prevent NullReferenceExceptions in services
         var mockDb = new Mock<IDatabase>();
-        mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>() ))
+        mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>() ))
                  .Returns(mockDb.Object);
         services.AddSingleton<IConnectionMultiplexer>(mockRedis.Object);
 
@@ -254,7 +254,7 @@ public static class TestConfiguration
                 new("BusinessVerticalId", user.BusinessVerticalId.ToString())
             };
             
-            return JwtTokenProvider.GenerateJwtToken(claims);
+            return await Task.FromResult(JwtTokenProvider.GenerateJwtToken(claims));
         }
         
         public async Task<bool> ValidateJwtTokenAsync(string token)
@@ -278,11 +278,11 @@ public static class TestConfiguration
             }
             catch
             {
-                return false;
+                return await Task.FromResult(false);
             }
         }
         
-        public async Task<User?> GetUserFromTokenAsync(string token)
+        public async Task<User> GetUserFromTokenAsync(string token)
         {
             if (!await ValidateJwtTokenAsync(token))
                 return null;
@@ -297,7 +297,7 @@ public static class TestConfiguration
             return await _userRepository.GetByEmailAsync(emailClaim.Value);
         }
         
-        public async Task<User?> ValidateUserAsync(string email, string password)
+        public async Task<User> ValidateUserAsync(string email, string password)
         {
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null || string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(user.PasswordSalt))
@@ -309,7 +309,7 @@ public static class TestConfiguration
             return null;
         }
         
-        public async Task<User?> GetUserByEmailAsync(string email)
+        public async Task<User> GetUserByEmailAsync(string email)
         {
             return await _userRepository.GetByEmailAsync(email);
         }
@@ -328,7 +328,7 @@ public static class TestConfiguration
             user.PasswordSalt = salt;
             
             await _userRepository.UpdateAsync(user);
-            return true;
+                return await Task.FromResult(true);
         }
         
         public async Task<bool> ResetPasswordAsync(string email)
@@ -341,7 +341,7 @@ public static class TestConfiguration
         public async Task<bool> ConfirmPasswordResetAsync(string token, string newPassword)
         {
             // Simplified implementation for testing
-            return false;
+            return await Task.FromResult(false);
         }
         
         public async Task<bool> IsEmailUniqueAsync(string email)

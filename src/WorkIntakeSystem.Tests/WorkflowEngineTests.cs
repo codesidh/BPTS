@@ -5,7 +5,6 @@ using WorkIntakeSystem.Core.Enums;
 using WorkIntakeSystem.Infrastructure.Services;
 using WorkIntakeSystem.Infrastructure.Data;
 using WorkIntakeSystem.Core.Interfaces;
-using WorkIntakeSystem.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

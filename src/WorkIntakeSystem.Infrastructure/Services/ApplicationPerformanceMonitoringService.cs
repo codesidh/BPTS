@@ -30,7 +30,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Metric Tracking
 
-        public async Task TrackMetricAsync(string metricName, double value, Dictionary<string, string> tags = null)
+        public async Task TrackMetricAsync(string metricName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 
@@ -45,7 +45,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task IncrementCounterAsync(string counterName, Dictionary<string, string> tags = null)
+        public async Task IncrementCounterAsync(string counterName, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 
@@ -60,7 +60,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task SetGaugeAsync(string gaugeName, double value, Dictionary<string, string> tags = null)
+        public async Task SetGaugeAsync(string gaugeName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 
@@ -75,7 +75,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task RecordHistogramAsync(string histogramName, double value, Dictionary<string, string> tags = null)
+        public async Task RecordHistogramAsync(string histogramName, double value, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 
@@ -94,7 +94,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Dependency Tracking
 
-        public async Task TrackDependencyAsync(string dependencyType, string target, TimeSpan duration, bool success, Dictionary<string, string> properties = null)
+        public async Task TrackDependencyAsync(string dependencyType, string target, TimeSpan duration, bool success, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -187,7 +187,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Exception Tracking
 
-        public async Task TrackExceptionAsync(Exception exception, Dictionary<string, string> properties = null)
+        public async Task TrackExceptionAsync(Exception exception, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -210,7 +210,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackExceptionAsync(Exception exception, string context, Dictionary<string, string> properties = null)
+        public async Task TrackExceptionAsync(Exception exception, string context, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -231,7 +231,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Event Tracking
 
-        public async Task TrackEventAsync(string eventName, Dictionary<string, string> properties = null)
+        public async Task TrackEventAsync(string eventName, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -246,7 +246,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackUserActionAsync(string userId, string action, Dictionary<string, string> properties = null)
+        public async Task TrackUserActionAsync(string userId, string action, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -264,7 +264,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackBusinessEventAsync(string eventName, Dictionary<string, object> properties = null)
+        public async Task TrackBusinessEventAsync(string eventName, Dictionary<string, object>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -291,7 +291,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Performance Tracking
 
-        public async Task<IDisposable> TrackOperationAsync(string operationName, Dictionary<string, string> properties = null)
+        public async Task<IDisposable> TrackOperationAsync(string operationName, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return new NoOpTracker();
 
@@ -308,7 +308,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackPerformanceAsync(string operationName, TimeSpan duration, Dictionary<string, string> properties = null)
+        public async Task TrackPerformanceAsync(string operationName, TimeSpan duration, Dictionary<string, string>? properties = null)
         {
             if (!_apmEnabled) return;
 
@@ -326,7 +326,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackMemoryUsageAsync(long memoryUsage, Dictionary<string, string> tags = null)
+        public async Task TrackMemoryUsageAsync(long memoryUsage, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 
@@ -343,7 +343,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
             }
         }
 
-        public async Task TrackCpuUsageAsync(double cpuUsage, Dictionary<string, string> tags = null)
+        public async Task TrackCpuUsageAsync(double cpuUsage, Dictionary<string, string>? tags = null)
         {
             if (!_apmEnabled) return;
 

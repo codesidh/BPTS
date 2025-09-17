@@ -358,15 +358,15 @@ public class WorkCategoryConfigurationService : IWorkCategoryConfigurationServic
             switch (validation.Key.ToLower())
             {
                 case "required":
-                    if (validation.Value.ToString() == "true" && (fieldValue == null || fieldValue.ToString() == ""))
+                    if (validation.Value?.ToString() == "true" && (fieldValue == null || fieldValue?.ToString() == ""))
                         return false;
                     break;
                 case "minlength":
-                    if (fieldValue?.ToString().Length < int.Parse(validation.Value.ToString()))
+                    if (fieldValue?.ToString().Length < int.Parse(validation.Value?.ToString() ?? "0"))
                         return false;
                     break;
                 case "maxlength":
-                    if (fieldValue?.ToString().Length > int.Parse(validation.Value.ToString()))
+                    if (fieldValue?.ToString().Length > int.Parse(validation.Value?.ToString() ?? "0"))
                         return false;
                     break;
                 case "pattern":
