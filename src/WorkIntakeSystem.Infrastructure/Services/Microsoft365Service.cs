@@ -9,8 +9,6 @@ using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.Net.Http.Headers;
 using Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession;
-using Microsoft.Graph.Models;
-using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;

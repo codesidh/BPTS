@@ -42,7 +42,7 @@ public class RoleController : ControllerBase
                 AllPermissions = allPermissions
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, "An error occurred while retrieving roles information");
         }
