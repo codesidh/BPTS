@@ -271,6 +271,7 @@ public class DatabaseQueryCacheService : IDatabaseQueryCacheService
         {
             // TODO: Implement pattern-based cache invalidation
             _logger.LogInformation("Query cache invalidation for pattern: {Pattern}", pattern);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -374,6 +375,7 @@ public class ConfigurationCacheService : IConfigurationCacheService
         {
             // TODO: Implement configuration cache clearing
             _logger.LogInformation("Invalidating all configuration cache");
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {

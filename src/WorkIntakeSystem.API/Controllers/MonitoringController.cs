@@ -473,62 +473,62 @@ namespace WorkIntakeSystem.API.Controllers
 
         public class TrackMetricRequest
         {
-            public string MetricName { get; set; }
+            public required string MetricName { get; set; }
             public double Value { get; set; }
-            public Dictionary<string, string> Tags { get; set; }
+            public required Dictionary<string, string> Tags { get; set; }
         }
 
         public class IncrementCounterRequest
         {
-            public string CounterName { get; set; }
-            public Dictionary<string, string> Tags { get; set; }
+            public required string CounterName { get; set; }
+            public required Dictionary<string, string> Tags { get; set; }
         }
 
         public class SetGaugeRequest
         {
-            public string GaugeName { get; set; }
+            public required string GaugeName { get; set; }
             public double Value { get; set; }
-            public Dictionary<string, string> Tags { get; set; }
+            public required Dictionary<string, string> Tags { get; set; }
         }
 
         public class RecordHistogramRequest
         {
-            public string HistogramName { get; set; }
+            public required string HistogramName { get; set; }
             public double Value { get; set; }
-            public Dictionary<string, string> Tags { get; set; }
+            public required Dictionary<string, string> Tags { get; set; }
         }
 
         public class TrackDependencyRequest
         {
-            public string DependencyType { get; set; }
-            public string Target { get; set; }
+            public required string DependencyType { get; set; }
+            public required string Target { get; set; }
             public double DurationMs { get; set; }
             public bool Success { get; set; }
-            public Dictionary<string, string> Properties { get; set; }
+            public required Dictionary<string, string> Properties { get; set; }
         }
 
         public class TrackExceptionRequest
         {
-            public string Message { get; set; }
-            public Dictionary<string, string> Properties { get; set; }
+            public required string Message { get; set; }
+            public required Dictionary<string, string> Properties { get; set; }
         }
 
         public class TrackEventRequest
         {
-            public string EventName { get; set; }
-            public Dictionary<string, string> Properties { get; set; }
+            public required string EventName { get; set; }
+            public required Dictionary<string, string> Properties { get; set; }
         }
 
         public class TrackUserActionRequest
         {
-            public string UserId { get; set; }
-            public string Action { get; set; }
-            public Dictionary<string, string> Properties { get; set; }
+            public required string UserId { get; set; }
+            public required string Action { get; set; }
+            public required Dictionary<string, string> Properties { get; set; }
         }
 
         public class SearchRequest
         {
-            public string Query { get; set; }
+            public required string Query { get; set; }
         }
 
         #endregion

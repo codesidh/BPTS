@@ -174,8 +174,6 @@ public class Microsoft365Service : IMicrosoft365Service
             // Note: Sites.PostAsync is not available in current SDK version
             // This would need to be implemented using direct HTTP calls or different approach
             _logger.LogWarning("Site creation via Graph API not implemented in current SDK version");
-            return string.Empty;
-            
             // Note: Site creation is not implemented in current SDK version
             return string.Empty;
         }
@@ -283,8 +281,6 @@ public class Microsoft365Service : IMicrosoft365Service
             // Note: Drive.Root is not available in current SDK version
             // This would need to be implemented using direct HTTP calls or different approach
             _logger.LogWarning("Drive items retrieval via Graph API not implemented in current SDK version");
-            return new List<SharePointDocument>();
-            
             // Note: Document retrieval is not implemented in current SDK version
             var documents = new List<SharePointDocument>();
 
@@ -338,8 +334,6 @@ public class Microsoft365Service : IMicrosoft365Service
             // Note: Power BI API signature has changed in current version
             // This would need to be updated based on current Power BI SDK
             _logger.LogWarning("Power BI report publishing not implemented with current SDK version");
-            return false;
-            
             // Note: Power BI report publishing is not implemented in current SDK version
             return false;
         }
@@ -581,7 +575,6 @@ public class Microsoft365Service : IMicrosoft365Service
             // Note: Sites.GetByPathAsync is not available in current SDK version
             // This would need to be implemented using direct HTTP calls or different approach
             _logger.LogWarning("Site ID retrieval via Graph API not implemented in current SDK version");
-            return string.Empty;
             // Note: Site ID retrieval is not implemented in current SDK version
             return string.Empty;
         }

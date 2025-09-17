@@ -36,7 +36,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.TrackMetricAsync(metricName, value, tags);
+                await _monitoringService.TrackMetricAsync(metricName, value, tags ?? new Dictionary<string, string>());
                 _logger.LogDebug("Tracked APM metric: {MetricName} = {Value}", metricName, value);
             }
             catch (Exception ex)
@@ -51,7 +51,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.IncrementCounterAsync(counterName, tags);
+                await _monitoringService.IncrementCounterAsync(counterName, tags ?? new Dictionary<string, string>());
                 _logger.LogDebug("Incremented APM counter: {CounterName}", counterName);
             }
             catch (Exception ex)
@@ -66,7 +66,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.SetGaugeAsync(gaugeName, value, tags);
+                await _monitoringService.SetGaugeAsync(gaugeName, value, tags ?? new Dictionary<string, string>());
                 _logger.LogDebug("Set APM gauge: {GaugeName} = {Value}", gaugeName, value);
             }
             catch (Exception ex)
@@ -81,7 +81,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.RecordHistogramAsync(histogramName, value, tags);
+                await _monitoringService.RecordHistogramAsync(histogramName, value, tags ?? new Dictionary<string, string>());
                 _logger.LogDebug("Recorded APM histogram: {HistogramName} = {Value}", histogramName, value);
             }
             catch (Exception ex)
@@ -193,7 +193,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.TrackExceptionAsync(exception, properties);
+                await _monitoringService.TrackExceptionAsync(exception, properties ?? new Dictionary<string, string>());
                 
                 var eventProperties = properties ?? new Dictionary<string, string>();
                 eventProperties["exception_type"] = exception.GetType().Name;
@@ -237,7 +237,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                await _monitoringService.TrackEventAsync(eventName, properties);
+                await _monitoringService.TrackEventAsync(eventName, properties ?? new Dictionary<string, string>());
                 _logger.LogDebug("Tracked APM event: {EventName}", eventName);
             }
             catch (Exception ex)
@@ -297,7 +297,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
             try
             {
-                var tracker = new OperationTracker(this, operationName, properties);
+                var tracker = new OperationTracker(this, operationName, properties ?? new Dictionary<string, string>());
                 await TrackEventAsync($"Operation_Start_{operationName}", properties);
                 return tracker;
             }

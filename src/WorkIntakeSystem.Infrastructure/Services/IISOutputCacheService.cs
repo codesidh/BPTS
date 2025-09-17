@@ -93,6 +93,7 @@ public class IISOutputCacheService : IIISOutputCacheService
             // TODO: Implement pattern-based cache invalidation
             // This would require maintaining a key registry or using Redis pattern operations
             _logger.LogInformation("Output cache invalidation requested for pattern: {Pattern}", pattern);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -106,6 +107,7 @@ public class IISOutputCacheService : IIISOutputCacheService
         {
             // TODO: Implement full output cache clearing
             _logger.LogInformation("All output cache invalidation requested");
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {

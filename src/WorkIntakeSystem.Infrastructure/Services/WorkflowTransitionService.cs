@@ -287,16 +287,16 @@ namespace WorkIntakeSystem.Infrastructure.Services
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(conditionScript)) return true;
+                if (string.IsNullOrWhiteSpace(conditionScript)) return await Task.FromResult(true);
 
                 // Basic validation - check if it's valid JSON and contains expected structure
                 var conditionObj = JsonSerializer.Deserialize<ConditionScript>(conditionScript);
-                return conditionObj != null;
+                return await Task.FromResult(conditionObj != null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating condition script");
-                return false;
+                return await Task.FromResult(false);
             }
         }
 

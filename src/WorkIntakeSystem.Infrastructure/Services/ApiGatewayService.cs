@@ -62,7 +62,7 @@ public class ApiGatewayService : IApiGatewayService
                     version, endpoint);
             }
 
-            return isSupported;
+            return await Task.FromResult(isSupported);
         }
         catch (Exception ex)
         {

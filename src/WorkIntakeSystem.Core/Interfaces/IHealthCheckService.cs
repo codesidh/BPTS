@@ -48,7 +48,7 @@ namespace WorkIntakeSystem.Core.Interfaces
     {
         public DateTime Timestamp { get; set; }
         public bool OverallHealth { get; set; }
-        public string OverallStatus { get; set; }
+        public required string OverallStatus { get; set; }
         public TimeSpan TotalCheckTime { get; set; }
         public List<HealthCheckResult> DatabaseChecks { get; set; } = new List<HealthCheckResult>();
         public List<HealthCheckResult> CacheChecks { get; set; } = new List<HealthCheckResult>();

@@ -50,7 +50,7 @@ namespace WorkIntakeSystem.Core.Interfaces
 
     public class ClusterHealth
     {
-        public string Status { get; set; }
+        public required string Status { get; set; }
         public int NumberOfNodes { get; set; }
         public int NumberOfDataNodes { get; set; }
         public int ActivePrimaryShards { get; set; }
@@ -67,7 +67,7 @@ namespace WorkIntakeSystem.Core.Interfaces
 
     public class IndexStats
     {
-        public string IndexName { get; set; }
+        public required string IndexName { get; set; }
         public long DocumentCount { get; set; }
         public long StorageSize { get; set; }
         public long IndexingRate { get; set; }

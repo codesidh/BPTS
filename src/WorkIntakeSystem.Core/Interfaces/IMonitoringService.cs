@@ -32,8 +32,8 @@ namespace WorkIntakeSystem.Core.Interfaces
     public class HealthCheckResult
     {
         public bool IsHealthy { get; set; }
-        public string Status { get; set; }
-        public string Description { get; set; }
+        public required string Status { get; set; }
+        public required string Description { get; set; }
         public Dictionary<string, object> Data { get; set; } = new Dictionary<string, object>();
         public TimeSpan ResponseTime { get; set; }
     }

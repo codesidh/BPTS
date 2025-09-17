@@ -31,7 +31,7 @@ namespace WorkIntakeSystem.Infrastructure.Services
 
         #region Index Management
 
-        public async Task<bool> CreateIndexAsync(string indexName, string mapping = null)
+        public async Task<bool> CreateIndexAsync(string indexName, string? mapping = null)
         {
             if (!_elasticsearchEnabled) return true;
 

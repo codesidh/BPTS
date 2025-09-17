@@ -1152,7 +1152,8 @@ namespace WorkIntakeSystem.Infrastructure.Services
             var overallStopwatch = Stopwatch.StartNew();
             var report = new ComprehensiveHealthReport
             {
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                OverallStatus = "Checking"
             };
 
             try
