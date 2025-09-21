@@ -33,7 +33,7 @@ namespace WorkIntakeSystem.API.Controllers
         /// </summary>
         /// <param name="request">Performance metric request</param>
         [HttpPost("metrics")]
-        public async Task<IActionResult> TrackPerformanceMetric([FromBody] TrackMetricRequest request)
+        public async Task<IActionResult> TrackPerformanceMetric([FromBody] PerformanceMetricRequest request)
         {
             try
             {
@@ -332,7 +332,7 @@ namespace WorkIntakeSystem.API.Controllers
 
     #region Request Models
 
-    public class TrackMetricRequest
+    public class PerformanceMetricRequest
     {
         public string MetricName { get; set; } = string.Empty;
         public double Value { get; set; }
