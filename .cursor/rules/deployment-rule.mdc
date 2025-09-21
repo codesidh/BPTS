@@ -1,0 +1,4 @@
+---
+description: Always use the BPTS\deployment\ scripts for docker and iis deployments.  Do not run individual deployment commands.  Fix the scripts in BPTS\deployment\ as needed.
+alwaysApply: false
+---

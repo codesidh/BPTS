@@ -1,0 +1,71 @@
+# Docker Compose Override File
+# This file provides environment-specific configurations
+# Copy this to docker-compose.override.yml and customize as needed
+
+version: '3.8'
+
+services:
+  # Development environment overrides
+  workintake-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      # Database connection
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=WorkIntakeSystem;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - ConnectionStrings__Redis=redis:6379
+      # JWT Settings for development
+      - Authentication__JwtSettings__Secret=YourSuperSecretKeyHereThatIsAtLeast32CharactersLong
+      - Authentication__JwtSettings__Issuer=WorkIntakeSystem-Dev
+      - Authentication__JwtSettings__Audience=WorkIntakeSystem-Dev
+      - Authentication__JwtSettings__ExpirationHours=24
+      # Disable Windows Authentication for Docker
+      - Authentication__Windows__Enabled=false
+      # Disable Service Broker for Docker (fixes SQL syntax issues)
+      - ServiceBroker__Enabled=false
+      # Development logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft=Warning
+      - Logging__LogLevel__Microsoft.EntityFrameworkCore=Information
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "5000:80"
+      - "5001:443"
+
+  workintake-web:
+    environment:
+      # Point to the API container
+      - REACT_APP_API_URL=http://localhost:5000
+      # Development settings
+      - NODE_ENV=development
+    ports:
+      - "3000:80"
+
+  sqlserver:
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Express
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      # Optional: mount initialization scripts
+      # - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "1433:1433"
+
+  redis:
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ""
+
+volumes:
+  sqlserver_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  workintake-network:
+    driver: bridge

@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:80"
-      - "5001:443"
+      # HTTPS port removed - SSL termination handled by reverse proxy if needed
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=WorkIntakeSystem;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;MultipleActiveResultSets=true
@@ -51,10 +51,8 @@ services:
       - AzureAd__ClientId=your-client-id
       - AzureAd__Audience=your-audience
     depends_on:
-      sqlserver:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - sqlserver
+      - redis
     networks:
       - workintake-network
     volumes:

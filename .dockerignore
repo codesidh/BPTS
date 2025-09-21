@@ -1,0 +1,249 @@
+# Build artifacts and outputs
+**/bin/
+**/obj/
+**/out/
+**/build/
+**/dist/
+**/target/
+**/Debug/
+**/Release/
+
+# Node.js dependencies and build artifacts
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.npm
+**/.yarn
+**/package-lock.json
+**/yarn.lock
+
+# .NET artifacts
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.cache
+**/*.tmp
+**/*.user
+**/*.vspscc
+**/*.vssscc
+**/*.suo
+**/*.sln.docstates
+**/*.userprefs
+**/*.pidb
+**/*.booproj
+**/*.svd
+**/*.pch
+**/*.aps
+**/*.ncb
+**/*.opendb
+**/*.opensdf
+**/*.sdf
+**/*.cachefile
+**/*.VC.db
+**/*.VC.VC.opendb
+**/*.psess
+**/*.vsp
+**/*.vspx
+**/*.sap
+**/*.e2e
+**/*.coverage
+**/*.coveragexml
+**/*.docx
+
+# IDE and editor files
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
+**/*.log
+
+# Git and version control
+**/.git/
+**/.gitignore
+**/.gitattributes
+**/.gitmodules
+
+# Docker files (except the ones we need)
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore
+
+# Documentation and markdown files
+**/*.md
+**/docs/
+**/documentation/
+**/specs/
+
+# Test files and coverage reports
+**/TestResults/
+**/coverage/
+**/*.trx
+**/*.coverage
+**/*.coveragexml
+
+# Logs and temporary files
+**/logs/
+**/*.log
+**/tmp/
+**/temp/
+**/.tmp/
+**/.temp/
+
+# SSL certificates and sensitive files
+**/certificates/
+**/*.pfx
+**/*.p12
+**/*.key
+**/*.pem
+**/*.crt
+**/*.cer
+
+# Package files
+**/*.nupkg
+**/*.snupkg
+**/*.tgz
+**/*.tar.gz
+**/*.zip
+**/*.rar
+
+# OS generated files
+**/.DS_Store
+**/.DS_Store?
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/ehthumbs.db
+**/Thumbs.db
+
+# Backup files
+**/*.bak
+**/*.backup
+**/*.old
+**/*.orig
+
+# Database files
+**/*.mdf
+**/*.ldf
+**/*.sqlite
+**/*.db
+
+# Environment and configuration files (keep templates)
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/appsettings.Development.json
+**/appsettings.Production.json
+
+# Monitoring and logging configuration
+**/logstash/
+**/elasticsearch/
+**/kibana/
+
+# Deployment scripts
+**/deployment/
+**/*.bat
+**/*.ps1
+**/*.sh
+
+# Large media files
+**/*.mp4
+**/*.avi
+**/*.mov
+**/*.wmv
+**/*.flv
+**/*.webm
+**/*.mkv
+**/*.m4v
+**/*.3gp
+
+# Large image files
+**/*.psd
+**/*.ai
+**/*.eps
+**/*.tiff
+**/*.bmp
+
+# Archive files
+**/*.7z
+**/*.dmg
+**/*.iso
+**/*.jar
+**/*.war
+
+# Test files and test projects
+**/Tests/
+**/TestResults/
+**/*Tests/
+**/*Test/
+**/*.Tests/
+**/*.Test/
+**/test/
+**/tests/
+**/*test*/
+**/*Test*/
+
+# Exclude everything in root except what we need
+/*
+!/src/
+!/Dockerfile
+!/docker-compose.yml
+
+# But exclude these from src/ as well
+src/**/bin/
+src/**/obj/
+src/**/TestResults/
+src/**/*.log
+src/**/logs/
+
+# Web project build artifacts (not needed for API)
+src/WorkIntakeSystem.Web/dist/
+src/WorkIntakeSystem.Web/build/
+src/WorkIntakeSystem.Web/node_modules/
+src/WorkIntakeSystem.Web/coverage/
+src/WorkIntakeSystem.Web/.next/
+src/WorkIntakeSystem.Web/out/
+
+# Test projects (not needed for API)
+src/WorkIntakeSystem.Tests/
+src/**/*.Tests/
+src/**/*Test*/
+
+# Source maps and large JS files
+**/*.map
+**/*.js.map
+**/*.css.map
+
+# Localization files (keep only English)
+**/cs/
+**/de/
+**/es/
+**/fr/
+**/it/
+**/ja/
+**/ko/
+**/pl/
+**/pt-BR/
+**/ru/
+**/tr/
+**/zh-Hans/
+**/zh-Hant/
+
+# Runtime packages for platforms we don't need
+**/runtimes/linux-arm/
+**/runtimes/linux-arm64/
+**/runtimes/osx/
+**/runtimes/osx-x64/
+**/runtimes/osx-arm64/
+**/runtimes/win-arm/
+**/runtimes/win-arm64/
+
+# IDE files that might be in src
+src/**/.vs/
+src/**/.vscode/
+src/**/.idea/

@@ -26,7 +26,6 @@
     <PackageReference Include="StackExchange.Redis" Version="2.7.10" />
     <!-- Phase 4: Enterprise Features -->
     <PackageReference Include="Microsoft.Graph" Version="5.56.0" />
-    <PackageReference Include="Microsoft.Graph.Beta" Version="5.61.0-preview" />
     <PackageReference Include="Microsoft.PowerBI.Api" Version="4.17.0" />
     <!-- Temporarily commented out for stub implementation -->
     <!--<PackageReference Include="Microsoft.SharePoint.Client" Version="14.0.4762.1000" />
