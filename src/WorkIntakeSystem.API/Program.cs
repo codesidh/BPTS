@@ -105,9 +105,14 @@ builder.Services.AddCors(options =>
 builder.Services.AddMemoryCache();
 
 // Redis caching
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(provider =>
+{
+    return StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString);
+});
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.Configuration = redisConnectionString;
 });
 
 // AutoMapper

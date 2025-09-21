@@ -42,9 +42,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:80"
-      # HTTPS port removed - SSL termination handled by reverse proxy if needed
+      - "5001:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80;https://+:443
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=WorkIntakeSystem;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;MultipleActiveResultSets=true
       - ConnectionStrings__Redis=redis:6379
       - AzureAd__TenantId=your-tenant-id
@@ -57,6 +58,7 @@ services:
       - workintake-network
     volumes:
       - ./logs:/app/logs
+      - ./certificates:/app/certificates
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s

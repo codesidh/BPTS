@@ -117,7 +117,6 @@ public class ServiceBrokerService : IServiceBrokerService
                     message_body,
                     message_sequence_number
                 FROM [{_queueName}]
-                WHERE conversation_handle IS NOT NULL
                 TIMEOUT {timeoutMs};";
 
             using var command = new SqlCommand(sql, connection);
