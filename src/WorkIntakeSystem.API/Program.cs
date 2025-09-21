@@ -156,7 +156,8 @@ builder.Services.AddScoped<IServiceBrokerService, ServiceBrokerService>();
 builder.Services.AddSingleton<IMessageHandlerRegistry, MessageHandlerRegistry>();
 
 // Background services
-builder.Services.AddHostedService<ServiceBrokerHostedService>();
+// Temporarily disabled due to Service Broker SQL syntax issues
+// builder.Services.AddHostedService<ServiceBrokerHostedService>();
 
 // Register services
 builder.Services.AddScoped<IPriorityCalculationService, PriorityCalculationService>(sp =>

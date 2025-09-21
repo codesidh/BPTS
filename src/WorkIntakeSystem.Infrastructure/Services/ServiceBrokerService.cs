@@ -111,13 +111,14 @@ public class ServiceBrokerService : IServiceBrokerService
 
             var timeoutMs = (int)(timeout?.TotalMilliseconds ?? _messageTimeout);
             var sql = $@"
-                RECEIVE TOP ({maxMessages})
-                    conversation_handle,
-                    message_type_name,
-                    message_body,
-                    message_sequence_number
-                FROM [{_queueName}]
-                TIMEOUT {timeoutMs};";
+                WAITFOR (
+                    RECEIVE TOP ({maxMessages})
+                        conversation_handle,
+                        message_type_name,
+                        message_body,
+                        message_sequence_number
+                    FROM [{_queueName}]
+                ), TIMEOUT {timeoutMs};";
 
             using var command = new SqlCommand(sql, connection);
             using var reader = await command.ExecuteReaderAsync();
