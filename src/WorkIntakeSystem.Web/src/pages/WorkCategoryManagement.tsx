@@ -4,8 +4,6 @@ import {
   Typography,
   Paper,
   Grid,
-  Card,
-  CardContent,
   Button,
   TextField,
   FormControl,
@@ -28,53 +26,24 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Switch,
   FormControlLabel,
   Divider,
   Tooltip,
-  Badge,
   List,
   ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Fab,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon
 } from '@mui/material';
 import {
-  Category,
   Add,
   Edit,
   Delete,
   Visibility,
-  Settings,
-  Save,
-  Cancel,
-  Close,
-  ExpandMore,
-  CheckCircle,
-  Warning,
-  Error,
   Refresh,
-  FilterList,
   Search,
-  FormBuilder,
   Approval,
-  Security,
-  Business,
-  Description,
-  Validation,
-  Notifications,
-  Customize
+  Notifications
 } from '@mui/icons-material';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 
 interface WorkCategory {
   id: number;
@@ -135,8 +104,6 @@ const WorkCategoryManagement: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<WorkCategory | null>(null);
   const [formBuilderOpen, setFormBuilderOpen] = useState(false);
   const [approvalMatrixOpen, setApprovalMatrixOpen] = useState(false);
-  const [validationRulesOpen, setValidationRulesOpen] = useState(false);
-  const [notificationTemplatesOpen, setNotificationTemplatesOpen] = useState(false);
   
   // Form states
   const [categoryName, setCategoryName] = useState('');
@@ -361,7 +328,7 @@ const WorkCategoryManagement: React.FC = () => {
     <Dialog open={formBuilderOpen} onClose={() => setFormBuilderOpen(false)} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" alignItems="center">
-          <FormBuilder sx={{ mr: 1 }} />
+          <Add sx={{ mr: 1 }} />
           Form Builder
         </Box>
       </DialogTitle>
@@ -785,7 +752,7 @@ const WorkCategoryManagement: React.FC = () => {
               <Button
                 fullWidth
                 variant="outlined"
-                startIcon={<FormBuilder />}
+                startIcon={<Add />}
                 onClick={() => setFormBuilderOpen(true)}
               >
                 Form Fields
@@ -805,8 +772,8 @@ const WorkCategoryManagement: React.FC = () => {
               <Button
                 fullWidth
                 variant="outlined"
-                startIcon={<Validation />}
-                onClick={() => setValidationRulesOpen(true)}
+                startIcon={<Add />}
+                onClick={() => {}}
               >
                 Validation Rules
               </Button>
@@ -816,7 +783,7 @@ const WorkCategoryManagement: React.FC = () => {
                 fullWidth
                 variant="outlined"
                 startIcon={<Notifications />}
-                onClick={() => setNotificationTemplatesOpen(true)}
+                onClick={() => {}}
               >
                 Notifications
               </Button>

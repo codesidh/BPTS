@@ -12,7 +12,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Alert,
   AlertTitle,
   LinearProgress,
@@ -31,28 +30,18 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
 } from '@mui/material';
 import {
   Security,
   Warning,
   CheckCircle,
   Error,
-  Info,
   Refresh,
   Visibility,
   Shield,
-  Lock,
   BugReport,
-  Timeline,
   Assessment,
   Notifications,
-  Settings,
-  Download
 } from '@mui/icons-material';
 import { apiService } from '../services/api';
 
@@ -328,7 +317,7 @@ const SecurityDashboard: React.FC = () => {
 
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label="Overview" icon={<Assessment />} />
           <Tab label="Threats" icon={<Warning />} />
           <Tab label="Alerts" icon={<Notifications />} />

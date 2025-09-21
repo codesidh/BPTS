@@ -8,7 +8,6 @@ import {
   BusinessVertical,
   User,
   DashboardStats,
-  PriorityLevel,
   WorkflowStageConfiguration,
   WorkflowTransition,
   WorkflowValidationResult,

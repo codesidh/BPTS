@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Alert } from '@mui/material';
 import { User } from '../types';
 
 const Users: React.FC = () => {

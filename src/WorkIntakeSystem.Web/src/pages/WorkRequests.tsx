@@ -21,30 +21,18 @@ import {
   TableRow,
   TablePagination,
   IconButton,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Alert,
   CircularProgress,
-  Tooltip,
-  Badge,
-  Tabs,
-  Tab
 } from '@mui/material';
 import {
   Add,
-  Edit,
-  Delete,
   Visibility,
   TrendingUp,
-  TrendingDown,
-  Schedule,
-  CheckCircle,
-  Warning,
-  Error,
-  FilterList,
-  Sort,
   Refresh
 } from '@mui/icons-material';
 import { apiService } from '../services/api';
@@ -62,7 +50,6 @@ const WorkRequests: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [activeTab, setActiveTab] = useState(0);
   const [selectedWorkRequest, setSelectedWorkRequest] = useState<WorkRequestWithDetails | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -139,7 +126,7 @@ const WorkRequests: React.FC = () => {
 
   const handleRecalculatePriority = async (workRequestId: number) => {
     try {
-      await apiService.recalculatePriority(workRequestId);
+      await apiService.getApi().post(`/workrequests/${workRequestId}/recalculate-priority`);
       loadWorkRequests();
     } catch (err) {
       setError('Failed to recalculate priority');

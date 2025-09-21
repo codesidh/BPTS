@@ -18,24 +18,18 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  FormControlLabel,
-  Switch,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  IconButton,
-  Tooltip,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -49,14 +43,11 @@ import {
   Notifications,
   Business,
   Sync,
-  PlayArrow,
-  Stop,
-  Edit,
-  Delete,
   Add,
   CloudSync,
   IntegrationInstructions,
   Api,
+  AssignmentInd,
 } from '@mui/icons-material';
 import { apiService } from '../services/api';
 import { useMsal } from '@azure/msal-react';
@@ -106,7 +97,7 @@ interface CalendarEvent {
 const ExternalIntegrations: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { instance } = useMsal();
+  const { } = useMsal();
   // Using the singleton apiService instance
   const queryClient = useQueryClient();
 
@@ -120,7 +111,7 @@ const ExternalIntegrations: React.FC = () => {
   const { data: systemStatuses, isLoading: statusLoading, refetch: refetchStatus } = useQuery(
     'externalSystemStatus',
     async () => {
-      const response = await api.getApi().get('/externalintegrations/status');
+      const response = await apiService.getApi().get('/externalintegrations/status');
       return response.data as ExternalSystemStatus[];
     }
   );
@@ -128,28 +119,28 @@ const ExternalIntegrations: React.FC = () => {
   const { data: integrationLogs, isLoading: logsLoading } = useQuery(
     'integrationLogs',
     async () => {
-      const response = await api.getApi().get('/externalintegrations/logs');
+      const response = await apiService.getApi().get('/externalintegrations/logs');
       return response.data as IntegrationLog[];
     }
   );
 
-  const { data: projectTasks, isLoading: tasksLoading } = useQuery(
+  const { data: projectTasks } = useQuery(
     ['projectTasks', selectedSystem],
     async () => {
       if (!selectedSystem) return [];
-      const response = await api.getApi().get(`/externalintegrations/projects/${selectedSystem}/tasks`);
+      const response = await apiService.getApi().get(`/externalintegrations/projects/${selectedSystem}/tasks`);
       return response.data as ProjectTask[];
     },
     { enabled: !!selectedSystem }
   );
 
-  const { data: calendarEvents, isLoading: eventsLoading } = useQuery(
+  const { data: calendarEvents } = useQuery(
     'calendarEvents',
     async () => {
       const fromDate = new Date();
       const toDate = new Date();
       toDate.setDate(toDate.getDate() + 30);
-      const response = await api.getApi().get(`/externalintegrations/calendar/events?fromDate=${fromDate.toISOString()}&toDate=${toDate.toISOString()}`);
+      const response = await apiService.getApi().get(`/externalintegrations/calendar/events?fromDate=${fromDate.toISOString()}&toDate=${toDate.toISOString()}`);
       return response.data as CalendarEvent[];
     }
   );
@@ -157,7 +148,7 @@ const ExternalIntegrations: React.FC = () => {
   // Mutations
   const syncMutation = useMutation(
     async (data: { systemName: string; endpoint: string; data: any }) => {
-      const response = await api.getApi().post('/externalintegrations/sync', data);
+      const response = await apiService.getApi().post('/externalintegrations/sync', data);
       return response.data;
     },
     {
@@ -171,7 +162,7 @@ const ExternalIntegrations: React.FC = () => {
 
   const notificationMutation = useMutation(
     async (data: { recipient: string; subject: string; message: string; type: string }) => {
-      const response = await api.getApi().post('/externalintegrations/notifications', data);
+      const response = await apiService.getApi().post('/externalintegrations/notifications', data);
       return response.data;
     },
     {
@@ -183,7 +174,7 @@ const ExternalIntegrations: React.FC = () => {
 
   const calendarMutation = useMutation(
     async (data: { workRequestId: number; title: string; description: string; startDate: string; endDate: string }) => {
-      const response = await api.getApi().post('/externalintegrations/calendar/events', data);
+      const response = await apiService.getApi().post('/externalintegrations/calendar/events', data);
       return response.data;
     },
     {
@@ -196,7 +187,7 @@ const ExternalIntegrations: React.FC = () => {
 
   const projectMutation = useMutation(
     async (data: { workRequestId: number; title: string; description: string; category: string; priorityLevel: string; estimatedEffort: number; targetDate?: string }) => {
-      const response = await api.getApi().post('/externalintegrations/projects', data);
+      const response = await apiService.getApi().post('/externalintegrations/projects', data);
       return response.data;
     },
     {
@@ -365,7 +356,7 @@ const ExternalIntegrations: React.FC = () => {
                       {projectTasks.slice(0, 3).map((task) => (
                         <ListItem key={task.id}>
                           <ListItemIcon>
-                            <Assignment fontSize="small" />
+                            <AssignmentInd fontSize="small" />
                           </ListItemIcon>
                           <ListItemText
                             primary={task.title}

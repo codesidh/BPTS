@@ -28,7 +28,6 @@ const PriorityConfiguration: React.FC<PriorityConfigurationProps> = ({ businessV
 
   // Data state
   const [businessVerticals, setBusinessVerticals] = useState<BusinessVertical[]>([]);
-  const [configurations, setConfigurations] = useState<PriorityConfigurationType[]>([]);
   const [algorithmConfig, setAlgorithmConfig] = useState<PriorityAlgorithmConfig>({
     algorithmType: 'Enhanced',
     baseWeight: 1.0,
@@ -107,8 +106,8 @@ const PriorityConfiguration: React.FC<PriorityConfigurationProps> = ({ businessV
     if (selectedBusinessVertical === 0) return;
     
     try {
-      const response = await apiService.get(`/api/priorityconfiguration/business-vertical/${selectedBusinessVertical}`);
-      setConfigurations(response.data);
+      await apiService.get(`/api/priorityconfiguration/business-vertical/${selectedBusinessVertical}`);
+      // setConfigurations(response.data);
     } catch (error) {
       console.error('Error loading configurations:', error);
     }

@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Progress } from '../components/ui/progress';
-import { api } from '../services/api';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Button,
+  Tabs,
+  Tab,
+  Alert,
+  LinearProgress,
+  Box,
+  Typography,
+  Grid,
+  Chip
+} from '@mui/material';
+import { apiService } from '../services/api';
 
 interface HealthCheckResult {
   isHealthy: boolean;
@@ -40,11 +48,12 @@ const Monitoring: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh] = useState(true);
+  const [activeTab, setActiveTab] = useState(0);
 
   const fetchHealthReport = async () => {
     try {
-      const response = await api.get('/api/monitoring/health');
+      const response = await apiService.getApi().get('/api/monitoring/health');
       setHealthReport(response.data);
       setError(null);
     } catch (err) {
@@ -101,226 +110,164 @@ const Monitoring: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'healthy':
-        return 'bg-green-500';
+        return 'success';
       case 'warning':
-        return 'bg-yellow-500';
+        return 'warning';
       case 'unhealthy':
-        return 'bg-red-500';
+        return 'error';
       case 'disabled':
-        return 'bg-gray-500';
+        return 'default';
       default:
-        return 'bg-blue-500';
+        return 'primary';
     }
   };
 
   const renderHealthChecks = (checks: HealthCheckResult[], title: string) => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          {title}
-          <Badge className={getStatusColor(
-            checks.every(c => c.isHealthy) ? 'Healthy' : 'Unhealthy'
-          )}>
-            {checks.every(c => c.isHealthy) ? 'Healthy' : 'Issues Detected'}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
+    <Card sx={{ mb: 2 }}>
+      <CardHeader 
+        title={
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">{title}</Typography>
+            <Chip 
+              label={checks.every(c => c.isHealthy) ? 'Healthy' : 'Issues Detected'}
+              color={getStatusColor(checks.every(c => c.isHealthy) ? 'success' : 'error')}
+            />
+          </Box>
+        }
+      />
       <CardContent>
-        <div className="space-y-4">
-          {checks.map((check, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{check.description}</span>
-                <Badge className={getStatusColor(check.status)}>
-                  {check.status}
-                </Badge>
-              </div>
-              <div className="text-sm text-gray-600">
-                Response Time: {check.responseTime}ms
-              </div>
-              {Object.keys(check.data).length > 0 && (
-                <div className="mt-2">
-                  <details className="text-sm">
-                    <summary className="cursor-pointer">Details</summary>
-                    <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                      {JSON.stringify(check.data, null, 2)}
-                    </pre>
-                  </details>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderMetrics = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>System Metrics</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {metrics.map((metric, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{metric.metricName}</span>
-                <span className="text-sm text-gray-600">
-                  {new Date(metric.timestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              <div className="text-2xl font-bold">{metric.value.toFixed(2)}</div>
-              {metric.tags && (
-                <div className="mt-2 flex gap-1">
-                  {Object.entries(metric.tags).map(([key, value]) => (
-                    <Badge key={key} variant="outline" className="text-xs">
-                      {key}: {value}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {checks.map((check, index) => (
+          <Box key={index} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2, mb: 2 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+              <Typography variant="body2" fontWeight="medium">
+                {check.description}
+              </Typography>
+              <Chip 
+                label={check.status}
+                color={getStatusColor(check.status) as any}
+                size="small"
+              />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              Response Time: {check.responseTime}ms
+            </Typography>
+          </Box>
+        ))}
       </CardContent>
     </Card>
   );
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading monitoring data...</div>
-        </div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <LinearProgress sx={{ width: '100%' }} />
+      </Box>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">System Monitoring</h1>
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => {
-              setAutoRefresh(!autoRefresh);
-              if (!autoRefresh) {
-                fetchHealthReport();
-                fetchMetrics();
-              }
-            }}
-            variant={autoRefresh ? "default" : "outline"}
-          >
-            {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-          </Button>
-          <Button onClick={fetchHealthReport} variant="outline">
-            Refresh Now
-          </Button>
-        </div>
-      </div>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        System Monitoring
+      </Typography>
 
       {error && (
-        <Alert className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
         </Alert>
       )}
 
-      {healthReport && (
-        <div className="mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Overall System Health
-                <Badge className={getStatusColor(healthReport.overallStatus)}>
-                  {healthReport.overallStatus}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {healthReport.summary.healthy_checks || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Healthy Checks</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {healthReport.summary.unhealthy_checks || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Unhealthy Checks</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {healthReport.summary.total_checks || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Total Checks</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {healthReport.totalCheckTime.toFixed(0)}ms
-                  </div>
-                  <div className="text-sm text-gray-600">Check Time</div>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="text-sm text-gray-600 mb-2">Health Score</div>
-                <Progress 
-                  value={
-                    healthReport.summary.total_checks > 0
-                      ? (healthReport.summary.healthy_checks / healthReport.summary.total_checks) * 100
-                      : 0
-                  }
-                  className="w-full"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">
+          Last Updated: {healthReport?.timestamp ? new Date(healthReport.timestamp).toLocaleString() : 'Never'}
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => {
+            fetchHealthReport();
+            fetchMetrics();
+          }}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </Box>
+
+      <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 2 }}>
+        <Tab label="Health Checks" />
+        <Tab label="Metrics" />
+      </Tabs>
+
+      {activeTab === 0 && healthReport && (
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Card sx={{ mb: 2 }}>
+              <CardHeader 
+                title={
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="h6">Overall System Health</Typography>
+                    <Chip 
+                      label={healthReport.overallStatus}
+                      color={getStatusColor(healthReport.overallStatus) as any}
+                      size="medium"
+                    />
+                  </Box>
+                }
+              />
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  Total Check Time: {healthReport.totalCheckTime}ms
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            {renderHealthChecks(healthReport.databaseChecks, 'Database Checks')}
+            {renderHealthChecks(healthReport.cacheChecks, 'Cache Checks')}
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            {renderHealthChecks(healthReport.externalServiceChecks, 'External Services')}
+            {renderHealthChecks(healthReport.systemChecks, 'System Checks')}
+            {renderHealthChecks(healthReport.applicationChecks, 'Application Checks')}
+          </Grid>
+        </Grid>
       )}
 
-      <Tabs defaultValue="health" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="health">Health Checks</TabsTrigger>
-          <TabsTrigger value="metrics">Metrics</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="health" className="space-y-6">
-          {healthReport && (
-            <>
-              {renderHealthChecks(healthReport.databaseChecks, 'Database Health')}
-              {renderHealthChecks(healthReport.cacheChecks, 'Cache Health')}
-              {renderHealthChecks(healthReport.externalServiceChecks, 'External Services Health')}
-              {renderHealthChecks(healthReport.systemChecks, 'System Health')}
-              {renderHealthChecks(healthReport.applicationChecks, 'Application Health')}
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="metrics" className="space-y-6">
-          {renderMetrics()}
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Application Logs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center text-gray-600 py-8">
-                <p>Log viewing functionality will be implemented here.</p>
-                <p className="text-sm mt-2">
-                  This will connect to Elasticsearch to display real-time application logs.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+      {activeTab === 1 && (
+        <Grid container spacing={2}>
+          {metrics.map((metric, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Card>
+                <CardHeader title={metric.metricName} />
+                <CardContent>
+                  <Typography variant="h4" color="primary">
+                    {metric.value.toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(metric.timestamp).toLocaleString()}
+                  </Typography>
+                  {metric.tags && (
+                    <Box mt={1}>
+                      {Object.entries(metric.tags).map(([key, value]) => (
+                        <Chip 
+                          key={key}
+                          label={`${key}: ${value}`}
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
   );
 };
 
-export default Monitoring; 
+export default Monitoring;

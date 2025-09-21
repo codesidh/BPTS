@@ -23,14 +23,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 import { 
-  WorkRequest, 
   type CreateWorkRequest, 
   WorkCategory, 
   Department, 
-  BusinessVertical,
-  PriorityLevel 
+  BusinessVertical 
 } from '../types';
 
 const steps = ['Basic Information', 'Business Details', 'Resource Requirements', 'Review & Submit'];

@@ -29,11 +29,8 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   ResponsiveContainer,
 } from 'recharts';
-import apiService from '../services/api';
 import { PriorityLevel, WorkCategory, WorkStatus } from '../types';
 
 // Mock data for demonstration - replace with actual API calls
@@ -240,7 +237,7 @@ const Dashboard: React.FC = () => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {categoryData.map((entry, index) => (
+                    {categoryData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

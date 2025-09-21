@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Rating,
   Divider
 } from '@mui/material';
 import {
@@ -37,7 +36,6 @@ import {
   TrendingUp,
   Schedule,
   CheckCircle,
-  Warning,
   Info
 } from '@mui/icons-material';
 import { apiService } from '../services/api';
@@ -332,9 +330,9 @@ const PriorityVoting: React.FC = () => {
                           <Chip
                             key={voteType}
                             label={`${voteType}: ${count}`}
-                            color={getVoteColor(voteType as PriorityVote) as any}
+                            color={getVoteColor(voteType as unknown as PriorityVote) as any}
                             size="small"
-                            icon={getVoteIcon(voteType as PriorityVote)}
+                            icon={getVoteIcon(voteType as unknown as PriorityVote)}
                           />
                         ))}
                       </Box>

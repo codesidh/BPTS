@@ -28,36 +28,24 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Switch,
   FormControlLabel,
-  Divider,
   Tooltip,
-  Badge,
 
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
-  History,
   PlayArrow,
   Visibility,
-  FilterList,
   Search,
   Refresh,
-  ExpandMore,
-  Event,
   Security,
-  BugReport,
   CheckCircle,
-  Warning,
-  Error,
   Info,
-  DateRange,
-  Person,
-  Computer
+  Edit,
+  Delete
 } from '@mui/icons-material';
+// Timeline components not available without @mui/lab package
 import { apiService } from '../services/api';
 
 interface EventStoreItem {
@@ -171,60 +159,77 @@ const EventAuditTrail: React.FC = () => {
   };
 
   const filterData = () => {
-    let filtered = activeTab === 0 ? events : auditTrails;
+    if (activeTab === 0) {
+      let filtered = [...events];
 
-    // Filter by search term
-    if (searchTerm) {
-      if (activeTab === 0) {
+      // Filter by search term
+      if (searchTerm) {
         filtered = filtered.filter((event: EventStoreItem) =>
           event.eventType.toLowerCase().includes(searchTerm.toLowerCase()) ||
           event.aggregateId.toLowerCase().includes(searchTerm.toLowerCase()) ||
           event.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
         );
-      } else {
+      }
+
+      // Filter by event type
+      if (filterEventType !== 'all') {
+        filtered = filtered.filter((event: EventStoreItem) => event.eventType === filterEventType);
+      }
+
+      // Filter by aggregate ID
+      if (filterAggregateId) {
+        filtered = filtered.filter((event: EventStoreItem) => 
+          event.aggregateId === filterAggregateId
+        );
+      }
+
+      // Filter by date range
+      if (dateRange.from || dateRange.to) {
+        filtered = filtered.filter((item: EventStoreItem) => {
+          const itemDate = new Date(item.timestamp);
+          const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+          const toDate = dateRange.to ? new Date(dateRange.to) : null;
+          
+          if (fromDate && itemDate < fromDate) return false;
+          if (toDate && itemDate > toDate) return false;
+          return true;
+        });
+      }
+
+      setFilteredEvents(filtered);
+    } else {
+      let filtered = [...auditTrails];
+
+      // Filter by search term
+      if (searchTerm) {
         filtered = filtered.filter((audit: AuditTrailItem) =>
           audit.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
           audit.comments.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (audit.changedBy?.name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       }
-    }
 
-    // Filter by event type (for events tab)
-    if (activeTab === 0 && filterEventType !== 'all') {
-      filtered = filtered.filter((event: EventStoreItem) => event.eventType === filterEventType);
-    }
-
-    // Filter by aggregate ID
-    if (filterAggregateId) {
-      if (activeTab === 0) {
-        filtered = filtered.filter((event: EventStoreItem) => 
-          event.aggregateId === filterAggregateId
-        );
-      } else {
+      // Filter by aggregate ID
+      if (filterAggregateId) {
         filtered = filtered.filter((audit: AuditTrailItem) => 
           audit.workRequestId.toString() === filterAggregateId
         );
       }
-    }
 
-    // Filter by date range
-    if (dateRange.from || dateRange.to) {
-      filtered = filtered.filter((item: any) => {
-        const itemDate = new Date(activeTab === 0 ? item.timestamp : item.changedDate);
-        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-        const toDate = dateRange.to ? new Date(dateRange.to) : null;
-        
-        if (fromDate && itemDate < fromDate) return false;
-        if (toDate && itemDate > toDate) return false;
-        return true;
-      });
-    }
+      // Filter by date range
+      if (dateRange.from || dateRange.to) {
+        filtered = filtered.filter((item: AuditTrailItem) => {
+          const itemDate = new Date(item.changedDate);
+          const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+          const toDate = dateRange.to ? new Date(dateRange.to) : null;
+          
+          if (fromDate && itemDate < fromDate) return false;
+          if (toDate && itemDate > toDate) return false;
+          return true;
+        });
+      }
 
-    if (activeTab === 0) {
-      setFilteredEvents(filtered as EventStoreItem[]);
-    } else {
-      setFilteredAuditTrails(filtered as AuditTrailItem[]);
+      setFilteredAuditTrails(filtered);
     }
   };
 
@@ -238,7 +243,7 @@ const EventAuditTrail: React.FC = () => {
       setLoading(true);
       setSelectedAggregateId(aggregateId);
       
-      const response = await api.get(`/api/eventstore/by-aggregate/${aggregateId}`);
+      const response = await apiService.getApi().get(`/api/eventstore/by-aggregate/${aggregateId}`);
       setReplayEvents(response.data);
       setReplayDialogOpen(true);
     } catch (err) {
@@ -261,7 +266,7 @@ const EventAuditTrail: React.FC = () => {
     if (action.includes('Created')) return <CheckCircle />;
     if (action.includes('Updated')) return <Edit />;
     if (action.includes('Deleted')) return <Delete />;
-    if (action.includes('Workflow')) return <Timeline />;
+    if (action.includes('Workflow')) return <TimelineIcon />;
     return <Info />;
   };
 
@@ -391,46 +396,14 @@ const EventAuditTrail: React.FC = () => {
       {activeTab === 0 && (
         <>
           {showTimeline ? (
-            <Timeline position="alternate">
-              {filteredEvents.map((event, index) => (
-                <TimelineItem key={event.id}>
-                  <TimelineOppositeContent color="text.secondary">
-                    {new Date(event.timestamp).toLocaleString()}
-                  </TimelineOppositeContent>
-                  <TimelineSeparator>
-                    <TimelineDot color={getEventTypeColor(event.eventType) as any}>
-                      <Event />
-                    </TimelineDot>
-                    {index < filteredEvents.length - 1 && <TimelineConnector />}
-                  </TimelineSeparator>
-                  <TimelineContent>
-                    <Paper elevation={3} sx={{ p: 2 }}>
-                      <Typography variant="h6" component="span">
-                        {event.eventType}
-                      </Typography>
-                      <Typography>Aggregate: {event.aggregateId}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        By: {event.createdBy}
-                      </Typography>
-                      <Box sx={{ mt: 1 }}>
-                        <Button
-                          size="small"
-                          onClick={() => handleViewEvent(event)}
-                        >
-                          View Details
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => handleReplayEvents(event.aggregateId)}
-                        >
-                          Replay
-                        </Button>
-                      </Box>
-                    </Paper>
-                  </TimelineContent>
-                </TimelineItem>
-              ))}
-            </Timeline>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Timeline View (Timeline component not available)
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Please install @mui/lab package to enable timeline view
+              </Typography>
+            </Box>
           ) : (
             <TableContainer component={Paper}>
               <Table>
@@ -711,31 +684,21 @@ const EventAuditTrail: React.FC = () => {
             Replaying events in chronological order to reconstruct the aggregate state
           </Typography>
           
-          <Timeline>
+          <Box>
             {replayEvents.map((event, index) => (
-              <TimelineItem key={event.id}>
-                <TimelineSeparator>
-                  <TimelineDot color={getEventTypeColor(event.eventType) as any}>
-                    {index + 1}
-                  </TimelineDot>
-                  {index < replayEvents.length - 1 && <TimelineConnector />}
-                </TimelineSeparator>
-                <TimelineContent>
-                  <Paper elevation={1} sx={{ p: 2 }}>
-                    <Typography variant="h6" component="span">
-                      {event.eventType}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Version {event.eventVersion} - {new Date(event.timestamp).toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
-                      {event.eventData}
-                    </Typography>
-                  </Paper>
-                </TimelineContent>
-              </TimelineItem>
+              <Paper key={event.id} elevation={1} sx={{ p: 2, mb: 2 }}>
+                <Typography variant="h6" component="span">
+                  {index + 1}. {event.eventType}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Version {event.eventVersion} - {new Date(event.timestamp).toLocaleString()}
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mt: 1 }}>
+                  {event.eventData}
+                </Typography>
+              </Paper>
             ))}
-          </Timeline>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReplayDialogOpen(false)}>Close</Button>

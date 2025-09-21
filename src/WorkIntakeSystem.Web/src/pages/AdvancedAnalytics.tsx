@@ -18,67 +18,28 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
   IconButton,
   Alert,
   CircularProgress,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Tooltip,
-  Badge,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
   LinearProgress,
   Rating,
-  Avatar,
   CardHeader,
   CardActions
 } from '@mui/material';
 import {
-  Analytics,
-  TrendingUp,
-  TrendingDown,
-  Warning,
   CheckCircle,
-  Error,
-  Refresh,
-  FilterList,
-  Search,
-  Timeline,
-  Assessment,
-  Prediction,
-  RiskAssessment,
-  CapacityPlanning,
-  BusinessCenter,
-  Speed,
-  Visibility,
-  Download,
-  Share,
-  Settings,
-  ExpandMore,
-  PlayArrow,
-  Pause,
-  Stop
+  Visibility
 } from '@mui/icons-material';
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -89,7 +50,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 
 interface PriorityPrediction {
   workRequestId: number;
@@ -170,9 +131,6 @@ const AdvancedAnalytics: React.FC = () => {
   const [riskLevelFilter, setRiskLevelFilter] = useState<string>('all');
 
   // Dialog states
-  const [predictionDialogOpen, setPredictionDialogOpen] = useState(false);
-  const [riskDialogOpen, setRiskDialogOpen] = useState(false);
-  const [insightDialogOpen, setInsightDialogOpen] = useState(false);
 
   useEffect(() => {
     loadAnalyticsData();
@@ -183,19 +141,19 @@ const AdvancedAnalytics: React.FC = () => {
       setLoading(true);
       
       // Load priority predictions
-      const priorityResponse = await apiService.get('/api/advancedanalytics/priority-predictions', {
+      const priorityResponse = await apiService.getApi().get('/api/advancedanalytics/priority-predictions', {
         params: { departmentId: selectedDepartment !== 'all' ? selectedDepartment : undefined }
       });
       setPriorityPredictions(priorityResponse.data);
 
       // Load capacity predictions
-      const capacityResponse = await apiService.get('/api/advancedanalytics/capacity-predictions', {
+      const capacityResponse = await apiService.getApi().get('/api/advancedanalytics/capacity-predictions', {
         params: { departmentId: selectedDepartment !== 'all' ? selectedDepartment : undefined }
       });
       setCapacityPredictions(capacityResponse.data);
 
       // Load risk assessments
-      const riskResponse = await apiService.get('/api/advancedanalytics/risk-assessments', {
+      const riskResponse = await apiService.getApi().get('/api/advancedanalytics/risk-assessments', {
         params: { 
           departmentId: selectedDepartment !== 'all' ? selectedDepartment : undefined,
           riskLevel: riskLevelFilter !== 'all' ? riskLevelFilter : undefined
@@ -204,13 +162,13 @@ const AdvancedAnalytics: React.FC = () => {
       setRiskAssessments(riskResponse.data);
 
       // Load workload predictions
-      const workloadResponse = await apiService.get('/api/advancedanalytics/workload-predictions', {
+      const workloadResponse = await apiService.getApi().get('/api/advancedanalytics/workload-predictions', {
         params: { departmentId: selectedDepartment !== 'all' ? selectedDepartment : undefined }
       });
       setWorkloadPredictions(workloadResponse.data);
 
       // Load predictive insights
-      const insightsResponse = await apiService.get('/api/advancedanalytics/predictive-insights', {
+      const insightsResponse = await apiService.getApi().get('/api/advancedanalytics/predictive-insights', {
         params: { departmentId: selectedDepartment !== 'all' ? selectedDepartment : undefined }
       });
       setPredictiveInsights(insightsResponse.data);
@@ -223,37 +181,6 @@ const AdvancedAnalytics: React.FC = () => {
     }
   };
 
-  const generatePriorityPrediction = async (workRequestId: number) => {
-    try {
-      setLoading(true);
-      const response = await apiService.post('/api/advancedanalytics/predict-priority', {
-        workRequestId
-      });
-      setSuccess('Priority prediction generated successfully');
-      loadAnalyticsData();
-    } catch (err) {
-      setError('Failed to generate priority prediction');
-      console.error('Error generating prediction:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const assessProjectRisk = async (workRequestId: number) => {
-    try {
-      setLoading(true);
-      const response = await apiService.post('/api/advancedanalytics/assess-risk', {
-        workRequestId
-      });
-      setSuccess('Risk assessment completed successfully');
-      loadAnalyticsData();
-    } catch (err) {
-      setError('Failed to assess project risk');
-      console.error('Error assessing risk:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRiskLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -442,8 +369,8 @@ const AdvancedAnalytics: React.FC = () => {
                 <Typography variant="h6">Priority Predictions</Typography>
                 <Button
                   variant="contained"
-                  startIcon={<Prediction />}
-                  onClick={() => setPredictionDialogOpen(true)}
+                  startIcon={<Visibility />}
+                  onClick={() => {}}
                 >
                   Generate Prediction
                 </Button>
@@ -570,8 +497,8 @@ const AdvancedAnalytics: React.FC = () => {
                 <Typography variant="h6">Risk Assessment</Typography>
                 <Button
                   variant="contained"
-                  startIcon={<RiskAssessment />}
-                  onClick={() => setRiskDialogOpen(true)}
+                  startIcon={<Visibility />}
+                  onClick={() => {}}
                 >
                   Assess Risk
                 </Button>

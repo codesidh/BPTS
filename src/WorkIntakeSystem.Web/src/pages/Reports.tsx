@@ -12,22 +12,17 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   Button,
   Chip,
   CircularProgress,
-  Alert,
   useTheme,
   useMediaQuery,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import {
   BarChart,
@@ -48,10 +43,6 @@ import {
 } from 'recharts';
 import {
   Download,
-  FilterList,
-  Refresh,
-  TrendingUp,
-  TrendingDown,
   Warning,
   CheckCircle,
   Schedule,
@@ -91,7 +82,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 const Reports: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { instance } = useMsal();
+  const { } = useMsal();
   // Using the singleton apiService instance
 
   const [tabValue, setTabValue] = useState(0);
@@ -113,7 +104,7 @@ const Reports: React.FC = () => {
       if (selectedDepartment !== 'all') params.append('departmentId', selectedDepartment);
       if (selectedBusinessVertical !== 'all') params.append('businessVerticalId', selectedBusinessVertical);
       
-      const response = await api.getApi().get(`/analytics/dashboard?${params}`);
+      const response = await apiService.getApi().get(`/analytics/dashboard?${params}`);
       return response.data;
     },
     {
@@ -128,7 +119,7 @@ const Reports: React.FC = () => {
         fromDate: dateRange.fromDate.toISOString(),
         toDate: dateRange.toDate.toISOString(),
       });
-      const response = await api.getApi().get(`/analytics/workflow?${params}`);
+      const response = await apiService.getApi().get(`/analytics/workflow?${params}`);
       return response.data;
     }
   );
@@ -140,7 +131,7 @@ const Reports: React.FC = () => {
         fromDate: dateRange.fromDate.toISOString(),
         toDate: dateRange.toDate.toISOString(),
       });
-      const response = await api.getApi().get(`/analytics/resource-utilization?${params}`);
+      const response = await apiService.getApi().get(`/analytics/resource-utilization?${params}`);
       return response.data;
     }
   );
@@ -152,12 +143,12 @@ const Reports: React.FC = () => {
         fromDate: dateRange.fromDate.toISOString(),
         toDate: dateRange.toDate.toISOString(),
       });
-      const response = await api.getApi().get(`/analytics/sla-compliance?${params}`);
+      const response = await apiService.getApi().get(`/analytics/sla-compliance?${params}`);
       return response.data;
     }
   );
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -442,7 +433,7 @@ const Reports: React.FC = () => {
                     Workflow Bottlenecks
                   </Typography>
                   <Box>
-                    {workflowAnalytics?.bottlenecks?.map((bottleneck, index) => (
+                    {workflowAnalytics?.bottlenecks?.map((bottleneck: any, index: number) => (
                       <Box key={index} display="flex" alignItems="center" mb={2} p={2} bgcolor="background.paper" borderRadius={1}>
                         <Warning color="warning" sx={{ mr: 2 }} />
                         <Box flex={1}>
@@ -537,7 +528,7 @@ const Reports: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {resourceAnalytics?.capacityGaps?.map((gap, index) => (
+                        {resourceAnalytics?.capacityGaps?.map((gap: any, index: number) => (
                           <TableRow key={index}>
                             <TableCell>{gap.departmentName}</TableCell>
                             <TableCell align="right">{gap.requiredHours}</TableCell>
@@ -641,7 +632,7 @@ const Reports: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {slaAnalytics?.violations?.slice(0, 5).map((violation, index) => (
+                        {slaAnalytics?.violations?.slice(0, 5).map((violation: any, index: number) => (
                           <TableRow key={index}>
                             <TableCell>{violation.title}</TableCell>
                             <TableCell>{violation.stage}</TableCell>

@@ -28,12 +28,8 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Switch,
   FormControlLabel,
-  Divider,
   Tooltip,
   Badge
 } from '@mui/material';
@@ -41,23 +37,12 @@ import {
   Settings,
   History,
   Edit,
-  Save,
-  Cancel,
-  Delete,
-  Add,
-  ExpandMore,
-  Visibility,
   CheckCircle,
-  Warning,
-  Error,
   Refresh,
-  FilterList,
   Search,
-  Timeline,
-  Approval,
   Security
 } from '@mui/icons-material';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 
 interface SystemConfiguration {
   id: number;
@@ -132,7 +117,7 @@ const ConfigurationManagement: React.FC = () => {
   const loadConfigurations = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/systemconfiguration');
+      const response = await apiService.getApi().get('/api/systemconfiguration');
       setConfigurations(response.data);
     } catch (err) {
       setError('Failed to load configurations');
@@ -168,7 +153,7 @@ const ConfigurationManagement: React.FC = () => {
 
   const loadHistory = async (key: string) => {
     try {
-      const response = await api.get(`/api/systemconfiguration/history?key=${key}`);
+      const response = await apiService.getApi().get(`/api/systemconfiguration/history?key=${key}`);
       setHistory(response.data);
     } catch (err) {
       setError('Failed to load configuration history');
@@ -206,7 +191,7 @@ const ConfigurationManagement: React.FC = () => {
         modifiedBy: 'Current User' // Would come from auth context
       };
 
-      await api.post('/api/systemconfiguration', configData);
+      await apiService.getApi().post('/api/systemconfiguration', configData);
       
       setEditDialogOpen(false);
       setSelectedConfig(null);
