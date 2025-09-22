@@ -1,7 +1,8 @@
 export enum WorkCategory {
   WorkRequest = 1,
   Project = 2,
-  BreakFix = 3
+  BreakFix = 3,
+  Other = 4
 }
 
 export enum WorkflowStage {
@@ -31,9 +32,10 @@ export enum WorkStatus {
   InProgress = 6,
   Testing = 7,
   Deployed = 8,
-  Closed = 9,
-  Rejected = 10,
-  OnHold = 11
+  Completed = 9,
+  Closed = 10,
+  Rejected = 11,
+  OnHold = 12
 }
 
 export enum PriorityVote {
@@ -753,4 +755,149 @@ export interface RiskSummary {
 export interface RiskTrends {
   trend: string;
   change: number;
+}
+
+// Analytics Types
+export interface RecentActivity {
+  workRequestId: number;
+  title: string;
+  action: string;
+  userName: string;
+  timestamp: string;
+  priorityLevel?: PriorityLevel;
+}
+
+export interface DashboardAnalytics {
+  totalActiveRequests: number;
+  totalCompletedRequests: number;
+  averageCompletionTime: number;
+  slaComplianceRate: number;
+  resourceUtilization: number;
+  requestsByCategory: Record<WorkCategory, number>;
+  requestsByPriority: Record<PriorityLevel, number>;
+  requestsByStatus: Record<WorkStatus, number>;
+  recentActivities: RecentActivity[];
+}
+
+export interface DepartmentAnalytics {
+  departmentId: number;
+  departmentName: string;
+  activeWorkRequests: number;
+  completedWorkRequests: number;
+  averageCompletionTime: number;
+  teamUtilization: number;
+  teamSize: number;
+  slaCompliance: number;
+  workRequestsByPriority: Record<PriorityLevel, number>;
+  workRequestsByStatus: Record<WorkStatus, number>;
+}
+
+export interface WorkflowAnalytics {
+  stageMetrics: WorkflowStageMetric[];
+  bottlenecks: WorkflowBottleneck[];
+  averageStageDuration: Record<WorkflowStage, number>;
+  throughputRate: number;
+  cycleTime: number;
+}
+
+export interface WorkflowStageMetric {
+  stage: WorkflowStage;
+  stageName: string;
+  averageDuration: number;
+  itemsInStage: number;
+  throughputRate: number;
+}
+
+export interface WorkflowBottleneck {
+  stage: WorkflowStage;
+  stageName: string;
+  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  averageWaitTime: number;
+  recommendations: string[];
+}
+
+export interface PriorityAnalytics {
+  priorityDistribution: Record<PriorityLevel, number>;
+  averagePriorityScore: number;
+  priorityTrends: PriorityTrend[];
+  highPriorityItems: WorkRequest[];
+}
+
+export interface PriorityTrend {
+  date: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface ResourceUtilization {
+  departmentUtilization: DepartmentUtilization[];
+  overallUtilization: number;
+  capacityVsDemand: CapacityDemand[];
+  resourceAllocation: ResourceAllocation[];
+}
+
+export interface DepartmentUtilization {
+  departmentId: number;
+  departmentName: string;
+  utilization: number;
+  capacity: number;
+  demand: number;
+}
+
+export interface CapacityDemand {
+  date: string;
+  capacity: number;
+  demand: number;
+  utilization: number;
+}
+
+export interface ResourceAllocation {
+  userId: number;
+  userName: string;
+  departmentName: string;
+  currentWorkload: number;
+  capacity: number;
+  utilization: number;
+}
+
+export interface SLACompliance {
+  overallCompliance: number;
+  complianceByDepartment: DepartmentSLACompliance[];
+  complianceByPriority: Record<PriorityLevel, number>;
+  slaBreaches: SLABreach[];
+  trendData: SLATrend[];
+}
+
+export interface DepartmentSLACompliance {
+  departmentId: number;
+  departmentName: string;
+  complianceRate: number;
+  totalRequests: number;
+  onTimeRequests: number;
+  lateRequests: number;
+}
+
+export interface SLABreach {
+  workRequestId: number;
+  title: string;
+  departmentName: string;
+  priorityLevel: PriorityLevel;
+  breachDays: number;
+  breachDate: string;
+}
+
+export interface SLATrend {
+  date: string;
+  complianceRate: number;
+  totalRequests: number;
+  onTimeRequests: number;
+}
+
+export interface TrendData {
+  date: string;
+  value: number;
+  label?: string;
+  category?: string;
 }

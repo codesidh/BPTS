@@ -10,9 +10,9 @@ public class WorkIntakeDbContextFactory : IDesignTimeDbContextFactory<WorkIntake
     {
         var optionsBuilder = new DbContextOptionsBuilder<WorkIntakeDbContext>();
         
-        // Use a default connection string for design-time
+        // Use Docker SQL Server connection string for design-time
         // This will be overridden by the actual configuration at runtime
-        optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=WorkIntakeSystemDb;Trusted_Connection=true;MultipleActiveResultSets=true");
+        optionsBuilder.UseSqlServer("Server=localhost,1433;Database=WorkIntakeSystem;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;MultipleActiveResultSets=true");
         
         return new WorkIntakeDbContext(optionsBuilder.Options);
     }

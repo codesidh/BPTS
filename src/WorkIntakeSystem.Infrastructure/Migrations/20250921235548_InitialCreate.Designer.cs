@@ -12,8 +12,8 @@ using WorkIntakeSystem.Infrastructure.Data;
 namespace WorkIntakeSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(WorkIntakeDbContext))]
-    [Migration("20250804024919_AddPerformanceIndexes")]
-    partial class AddPerformanceIndexes
+    [Migration("20250921235548_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -61,6 +61,10 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NewValue")
                         .HasColumnType("nvarchar(max)");
@@ -249,6 +253,9 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal>("StrategicImportance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("Version")
                         .HasColumnType("int");
 
@@ -266,12 +273,13 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Configuration = "{}",
                             ConfigurationHistory = "[]",
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5155),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3344),
                             Description = "Medicaid business vertical",
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5157),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3345),
                             Name = "Medicaid",
+                            StrategicImportance = 1.0m,
                             Version = 1
                         });
                 });
@@ -341,6 +349,78 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("CapabilityDepartmentMappings");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.ComplianceViolation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Framework")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Requirement")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ResolutionNotes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<int>("UserId")
+                        .HasMaxLength(50)
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetectedAt");
+
+                    b.HasIndex("Framework");
+
+                    b.HasIndex("IsResolved");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ComplianceViolations");
                 });
 
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.ConfigurationChangeRequest", b =>
@@ -519,14 +599,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 1,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5374),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3587),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "REG",
                             Description = "",
                             DisplayOrder = 1,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5375),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3587),
                             Name = "Regulatory",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -537,14 +617,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 2,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5399),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3617),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "COM",
                             Description = "",
                             DisplayOrder = 2,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5399),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3617),
                             Name = "Compliance",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -555,14 +635,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 3,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5417),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3634),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "COM",
                             Description = "",
                             DisplayOrder = 3,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5417),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3634),
                             Name = "Communication",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -573,14 +653,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 4,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5434),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3649),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "COM",
                             Description = "",
                             DisplayOrder = 4,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5434),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3649),
                             Name = "Community Outreach",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -591,14 +671,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 5,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5451),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3663),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "CLI",
                             Description = "",
                             DisplayOrder = 5,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5451),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3664),
                             Name = "Clinical Services",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -609,14 +689,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 6,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5471),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3682),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "CON",
                             Description = "",
                             DisplayOrder = 6,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5471),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3683),
                             Name = "Contract Performance",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -627,14 +707,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 7,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5487),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3697),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "OPE",
                             Description = "",
                             DisplayOrder = 7,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5487),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3697),
                             Name = "Operations",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -645,14 +725,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 8,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5503),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3711),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "PRO",
                             Description = "",
                             DisplayOrder = 8,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5503),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3711),
                             Name = "Provider Network Operations",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -663,14 +743,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 9,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5519),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3726),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "PRO",
                             Description = "",
                             DisplayOrder = 9,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5520),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3727),
                             Name = "Provider Network Management",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -681,14 +761,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 10,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5538),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3742),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "SER",
                             Description = "",
                             DisplayOrder = 10,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5539),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3743),
                             Name = "Service Coordination",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -699,14 +779,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 11,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5555),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3757),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "DAT",
                             Description = "",
                             DisplayOrder = 11,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5555),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3757),
                             Name = "Data and Technical Services",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -717,14 +797,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 12,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5588),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3771),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "ASS",
                             Description = "",
                             DisplayOrder = 12,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5588),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3771),
                             Name = "Associate Relations",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -735,14 +815,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 13,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5606),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3786),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "FIN",
                             Description = "",
                             DisplayOrder = 13,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5606),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3786),
                             Name = "Finance and Actuarial",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -753,14 +833,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 14,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5677),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3799),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "HUM",
                             Description = "",
                             DisplayOrder = 14,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5677),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3800),
                             Name = "Human Resources",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -771,14 +851,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 15,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5697),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3815),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "PRO",
                             Description = "",
                             DisplayOrder = 15,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5697),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3816),
                             Name = "Program Management and Quality",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -789,14 +869,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 16,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5714),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3837),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "QUA",
                             Description = "",
                             DisplayOrder = 16,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5715),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3837),
                             Name = "Quality",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -807,14 +887,14 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                             Id = 17,
                             BusinessVerticalId = 1,
                             CreatedBy = "System",
-                            CreatedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5730),
+                            CreatedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3853),
                             CurrentUtilization = 0.0m,
                             DepartmentCode = "POP",
                             Description = "",
                             DisplayOrder = 17,
                             IsActive = true,
                             ModifiedBy = "System",
-                            ModifiedDate = new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5731),
+                            ModifiedDate = new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3853),
                             Name = "Population Health Medical Services",
                             ResourceCapacity = 100,
                             SkillMatrix = "{}",
@@ -977,6 +1057,550 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.ToTable("Priorities");
                 });
 
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.PriorityConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AutoAdjustmentRules")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BusinessValueWeights")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.Property<int>("BusinessVerticalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CapacityFactors")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("ColorCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EscalationRules")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("EscalationThresholdHours")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IconClass")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal>("MaxScore")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<decimal>("MinScore")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NotificationSettings")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PriorityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("SLAHours")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TimeDecayConfiguration")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessVerticalId", "PriorityName")
+                        .IsUnique();
+
+                    b.ToTable("PriorityConfigurations");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityAlert", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AcknowledgedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ActionRequired")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EscalatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EscalatedTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsEscalated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("SecurityAlerts");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Duration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("HttpMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("IPAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("RequestData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ResponseData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("UserId")
+                        .HasMaxLength(50)
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SecurityAuditLogs");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IPAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<bool>("IsSuspicious")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("UserId")
+                        .HasMaxLength(50)
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("IsSuspicious");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SecurityEvents");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityIncident", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AffectedResources")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AssignedTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IncidentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("InvestigationNotes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<string>("ResolutionNotes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Open");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetectedAt");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("SecurityIncidents");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityThreat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MitigationSteps")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResolutionNotes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<string>("SourceIP")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<string>("TargetResource")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ThreatType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetectedAt");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("SecurityThreats");
+                });
+
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SystemConfiguration", b =>
                 {
                     b.Property<int>("Id")
@@ -1073,6 +1697,13 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ActiveDirectorySid")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AdGroups")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("BusinessVerticalId")
                         .HasColumnType("int");
 
@@ -1102,6 +1733,12 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsWindowsAuthenticated")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastAdSync")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1130,6 +1767,10 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
                         .HasDefaultValue("{}");
+
+                    b.Property<string>("WindowsIdentity")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 
@@ -1360,6 +2001,176 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.ToTable("WorkRequests");
                 });
 
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.WorkflowStageConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AllowedTransitions")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ApprovalRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("AutoTransition")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("BusinessVerticalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChangeHistory")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EffectiveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NotificationTemplate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequiredRoles")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SLAHours")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StageType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ValidationRules")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessVerticalId", "Order")
+                        .HasDatabaseName("IX_WorkflowStages_VerticalOrder");
+
+                    b.ToTable("WorkflowStages");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.WorkflowTransition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AutoTransitionDelayMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BusinessVerticalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConditionScript")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EventSourceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("FromStageId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("NotificationRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NotificationTemplate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequiredRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ToStageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TransitionName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ValidationRules")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessVerticalId");
+
+                    b.HasIndex("ToStageId");
+
+                    b.HasIndex("FromStageId", "ToStageId", "BusinessVerticalId")
+                        .IsUnique()
+                        .HasFilter("[BusinessVerticalId] IS NOT NULL");
+
+                    b.ToTable("WorkflowTransitions");
+                });
+
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.AuditTrail", b =>
                 {
                     b.HasOne("WorkIntakeSystem.Core.Entities.User", "ChangedBy")
@@ -1407,6 +2218,17 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.Navigation("Capability");
 
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.ComplianceViolation", b =>
+                {
+                    b.HasOne("WorkIntakeSystem.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.ConfigurationChangeRequest", b =>
@@ -1480,6 +2302,28 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.Navigation("VotedBy");
 
                     b.Navigation("WorkRequest");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.PriorityConfiguration", b =>
+                {
+                    b.HasOne("WorkIntakeSystem.Core.Entities.BusinessVertical", "BusinessVertical")
+                        .WithMany()
+                        .HasForeignKey("BusinessVerticalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BusinessVertical");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SecurityEvent", b =>
+                {
+                    b.HasOne("WorkIntakeSystem.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.SystemConfiguration", b =>
@@ -1563,6 +2407,42 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.Navigation("Submitter");
                 });
 
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.WorkflowStageConfiguration", b =>
+                {
+                    b.HasOne("WorkIntakeSystem.Core.Entities.BusinessVertical", "BusinessVertical")
+                        .WithMany()
+                        .HasForeignKey("BusinessVerticalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BusinessVertical");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.WorkflowTransition", b =>
+                {
+                    b.HasOne("WorkIntakeSystem.Core.Entities.BusinessVertical", "BusinessVertical")
+                        .WithMany()
+                        .HasForeignKey("BusinessVerticalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("WorkIntakeSystem.Core.Entities.WorkflowStageConfiguration", "FromStage")
+                        .WithMany("FromTransitions")
+                        .HasForeignKey("FromStageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WorkIntakeSystem.Core.Entities.WorkflowStageConfiguration", "ToStage")
+                        .WithMany("ToTransitions")
+                        .HasForeignKey("ToStageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BusinessVertical");
+
+                    b.Navigation("FromStage");
+
+                    b.Navigation("ToStage");
+                });
+
             modelBuilder.Entity("WorkIntakeSystem.Core.Entities.BusinessCapability", b =>
                 {
                     b.Navigation("DepartmentMappings");
@@ -1609,6 +2489,13 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     b.Navigation("Events");
 
                     b.Navigation("PriorityVotes");
+                });
+
+            modelBuilder.Entity("WorkIntakeSystem.Core.Entities.WorkflowStageConfiguration", b =>
+                {
+                    b.Navigation("FromTransitions");
+
+                    b.Navigation("ToTransitions");
                 });
 #pragma warning restore 612, 618
         }

@@ -31,36 +31,8 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts';
-import { PriorityLevel, WorkCategory, WorkStatus } from '../types';
-
-// Mock data for demonstration - replace with actual API calls
-const mockDashboardData = {
-  totalActiveRequests: 156,
-  totalByCategory: {
-    [WorkCategory.WorkRequest]: 89,
-    [WorkCategory.Project]: 45,
-    [WorkCategory.BreakFix]: 22,
-  },
-  totalByPriority: {
-    [PriorityLevel.Critical]: 12,
-    [PriorityLevel.High]: 34,
-    [PriorityLevel.Medium]: 67,
-    [PriorityLevel.Low]: 43,
-  },
-  totalByStatus: {
-    [WorkStatus.Draft]: 15,
-    [WorkStatus.Submitted]: 28,
-    [WorkStatus.UnderReview]: 22,
-    [WorkStatus.Approved]: 18,
-    [WorkStatus.InProgress]: 35,
-    [WorkStatus.Testing]: 12,
-    [WorkStatus.Deployed]: 8,
-    [WorkStatus.Closed]: 145,
-  },
-  averageCompletionTime: 24.5,
-  slaCompliance: 87.3,
-  resourceUtilization: 78.2,
-};
+import { PriorityLevel, WorkCategory, WorkStatus, DashboardAnalytics } from '../types';
+import { apiService } from '../services/api';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -98,16 +70,19 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, subtitle
 );
 
 const Dashboard: React.FC = () => {
-  // In a real application, these would be actual API calls
-  const { data: dashboardData, isLoading, error } = useQuery(
+  // Fetch real dashboard data from API
+  const { data: dashboardData, isLoading, error } = useQuery<DashboardAnalytics>(
     'dashboardStats',
     async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return mockDashboardData;
+      console.log('Dashboard: Fetching dashboard analytics...');
+      const analytics = await apiService.getDashboardAnalytics();
+      console.log('Dashboard: Received analytics data:', analytics);
+      return analytics;
     },
     {
       refetchInterval: 30000, // Refresh every 30 seconds
+      retry: 3,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
@@ -131,25 +106,29 @@ const Dashboard: React.FC = () => {
 
   // Prepare chart data
   const categoryData = [
-    { name: 'Work Requests', value: data.totalByCategory[WorkCategory.WorkRequest] },
-    { name: 'Projects', value: data.totalByCategory[WorkCategory.Project] },
-    { name: 'Break Fix', value: data.totalByCategory[WorkCategory.BreakFix] },
+    { name: 'Work Requests', value: data.requestsByCategory[WorkCategory.WorkRequest] || 0 },
+    { name: 'Projects', value: data.requestsByCategory[WorkCategory.Project] || 0 },
+    { name: 'Break Fix', value: data.requestsByCategory[WorkCategory.BreakFix] || 0 },
+    { name: 'Other', value: data.requestsByCategory[WorkCategory.Other] || 0 },
   ];
 
   const priorityData = [
-    { name: 'Critical', value: data.totalByPriority[PriorityLevel.Critical], color: '#FF4444' },
-    { name: 'High', value: data.totalByPriority[PriorityLevel.High], color: '#FF8800' },
-    { name: 'Medium', value: data.totalByPriority[PriorityLevel.Medium], color: '#FFBB00' },
-    { name: 'Low', value: data.totalByPriority[PriorityLevel.Low], color: '#00AA00' },
+    { name: 'Critical', value: data.requestsByPriority[PriorityLevel.Critical] || 0, color: '#FF4444' },
+    { name: 'High', value: data.requestsByPriority[PriorityLevel.High] || 0, color: '#FF8800' },
+    { name: 'Medium', value: data.requestsByPriority[PriorityLevel.Medium] || 0, color: '#FFBB00' },
+    { name: 'Low', value: data.requestsByPriority[PriorityLevel.Low] || 0, color: '#00AA00' },
   ];
 
   const statusData = [
-    { name: 'Draft', value: data.totalByStatus[WorkStatus.Draft] },
-    { name: 'Submitted', value: data.totalByStatus[WorkStatus.Submitted] },
-    { name: 'Under Review', value: data.totalByStatus[WorkStatus.UnderReview] },
-    { name: 'Approved', value: data.totalByStatus[WorkStatus.Approved] },
-    { name: 'In Progress', value: data.totalByStatus[WorkStatus.InProgress] },
-    { name: 'Testing', value: data.totalByStatus[WorkStatus.Testing] },
+    { name: 'Draft', value: data.requestsByStatus[WorkStatus.Draft] || 0 },
+    { name: 'Submitted', value: data.requestsByStatus[WorkStatus.Submitted] || 0 },
+    { name: 'Under Review', value: data.requestsByStatus[WorkStatus.UnderReview] || 0 },
+    { name: 'Approved', value: data.requestsByStatus[WorkStatus.Approved] || 0 },
+    { name: 'In Progress', value: data.requestsByStatus[WorkStatus.InProgress] || 0 },
+    { name: 'Testing', value: data.requestsByStatus[WorkStatus.Testing] || 0 },
+    { name: 'Deployed', value: data.requestsByStatus[WorkStatus.Deployed] || 0 },
+    { name: 'Completed', value: data.requestsByStatus[WorkStatus.Completed] || 0 },
+    { name: 'Closed', value: data.requestsByStatus[WorkStatus.Closed] || 0 },
   ];
 
   return (
@@ -172,7 +151,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
             title="Avg. Completion Time"
-            value={`${data.averageCompletionTime} days`}
+            value={`${Math.round(data.averageCompletionTime)} days`}
             icon={<Schedule />}
             color="#2e7d32"
             subtitle="Time from intake to closure"
@@ -181,7 +160,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
             title="SLA Compliance"
-            value={`${data.slaCompliance}%`}
+            value={`${Math.round(data.slaComplianceRate * 100)}%`}
             icon={<CheckCircle />}
             color="#ed6c02"
             subtitle="On-time delivery rate"
@@ -190,7 +169,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
             title="Resource Utilization"
-            value={`${data.resourceUtilization}%`}
+            value={`${Math.round(data.resourceUtilization * 100)}%`}
             icon={<Speed />}
             color="#9c27b0"
             subtitle="Team capacity usage"

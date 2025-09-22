@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
@@ -10,16 +10,25 @@ import {
   CircularProgress,
   Container
 } from '@mui/material';
-import { apiService } from '../services/api';
+import { useAuth } from '../components/AuthProvider';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirect to dashboard when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('Login component: User is authenticated, redirecting...');
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -30,15 +39,25 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== FORM SUBMITTED ===');
+    console.log('Form data:', formData);
     setLoading(true);
     setError('');
 
     try {
-      await apiService.login(formData);
-      navigate('/dashboard');
+      console.log('=== STARTING LOGIN PROCESS ===');
+      console.log('Attempting login...');
+      await login(formData.email, formData.password);
+      console.log('=== LOGIN SUCCESSFUL ===');
+      console.log('Login successful, PublicRoute will handle redirect...');
+      // Don't manually navigate - let PublicRoute handle the redirect
+      // The authentication state change will trigger PublicRoute to redirect
     } catch (err: any) {
+      console.error('=== LOGIN FAILED ===');
+      console.error('Login failed:', err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
+      console.log('=== LOGIN PROCESS COMPLETED ===');
       setLoading(false);
     }
   };
@@ -101,6 +120,20 @@ const Login: React.FC = () => {
               disabled={loading}
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
+            </Button>
+            <Button
+              type="button"
+              fullWidth
+              variant="outlined"
+              sx={{ mb: 2 }}
+              onClick={() => {
+                console.log('=== TEST BUTTON CLICKED ===');
+                console.log('React app is working!');
+                console.log('Current form data:', formData);
+                console.log('Auth state:', { isAuthenticated });
+              }}
+            >
+              Test Console (Click to verify React is working)
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link to="/register" style={{ textDecoration: 'none' }}>

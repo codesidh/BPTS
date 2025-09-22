@@ -33,8 +33,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         if (apiService.isAuthenticated()) {
-          const currentUser = await apiService.getCurrentUser();
-          setUser(currentUser);
+          try {
+            const currentUser = await apiService.getCurrentUser();
+            setUser(currentUser);
+          } catch (error) {
+            console.error('Failed to get current user, clearing auth:', error);
+            apiService.logout();
+          }
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -49,9 +54,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('AuthProvider: Starting login...');
+      console.log('AuthProvider: Email:', email);
+      
       const response = await apiService.login({ email, password });
+      console.log('AuthProvider: Login response received:', response);
+      
+      // Validate response
+      if (!response) {
+        throw new Error('No response from API service');
+      }
+      
+      if (!response.user) {
+        throw new Error('No user data in response');
+      }
+      
+      console.log('AuthProvider: Setting user to state:', response.user);
       setUser(response.user);
+      console.log('AuthProvider: User set to state successfully');
+      
+      // Force a small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('AuthProvider: State update delay completed');
     } catch (error) {
+      console.error('AuthProvider: Login error:', error);
+      console.error('AuthProvider: Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   };

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace WorkIntakeSystem.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddPerformanceIndexes : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,6 +24,7 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     Configuration = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
                     Version = table.Column<int>(type: "int", nullable: false),
                     ConfigurationHistory = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "[]"),
+                    StrategicImportance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -33,6 +34,116 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BusinessVerticals", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SecurityAlerts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AlertType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AcknowledgedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AcknowledgedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Source = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Metadata = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Category = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ActionRequired = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    IsEscalated = table.Column<bool>(type: "bit", nullable: false),
+                    EscalatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EscalatedTo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SecurityAlerts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SecurityAuditLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", maxLength: 50, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Resource = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    IPAddress = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
+                    UserAgent = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Result = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Details = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SessionId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CorrelationId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    RequestData = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResponseData = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Duration = table.Column<int>(type: "int", nullable: true),
+                    Endpoint = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    HttpMethod = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    StatusCode = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SecurityAuditLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SecurityIncidents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Open"),
+                    DetectedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AssignedTo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ResolutionNotes = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Impact = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    AffectedResources = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IncidentType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Priority = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Medium"),
+                    InvestigationNotes = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastUpdatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SecurityIncidents", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SecurityThreats",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ThreatType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
+                    DetectedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SourceIP = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
+                    TargetResource = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    MitigationSteps = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsResolved = table.Column<bool>(type: "bit", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ResolvedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ResolutionNotes = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SecurityThreats", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -96,6 +207,44 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     table.PrimaryKey("PK_Departments", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Departments_BusinessVerticals_BusinessVerticalId",
+                        column: x => x.BusinessVerticalId,
+                        principalTable: "BusinessVerticals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PriorityConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BusinessVerticalId = table.Column<int>(type: "int", nullable: false),
+                    PriorityName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    MinScore = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
+                    MaxScore = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
+                    ColorCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    IconClass = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    EscalationRules = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TimeDecayConfiguration = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    BusinessValueWeights = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    CapacityFactors = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    AutoAdjustmentRules = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SLAHours = table.Column<int>(type: "int", nullable: true),
+                    EscalationThresholdHours = table.Column<int>(type: "int", nullable: true),
+                    NotificationSettings = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PriorityConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PriorityConfigurations_BusinessVerticals_BusinessVerticalId",
                         column: x => x.BusinessVerticalId,
                         principalTable: "BusinessVerticals",
                         principalColumn: "Id",
@@ -179,6 +328,44 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WorkflowStages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Order = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    BusinessVerticalId = table.Column<int>(type: "int", nullable: true),
+                    RequiredRoles = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ApprovalRequired = table.Column<bool>(type: "bit", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    StageType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SLAHours = table.Column<int>(type: "int", nullable: true),
+                    NotificationTemplate = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AutoTransition = table.Column<bool>(type: "bit", nullable: false),
+                    AllowedTransitions = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ValidationRules = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false),
+                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ChangeHistory = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowStages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowStages_BusinessVerticals_BusinessVerticalId",
+                        column: x => x.BusinessVerticalId,
+                        principalTable: "BusinessVerticals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CapabilityDepartmentMappings",
                 columns: table => new
                 {
@@ -233,6 +420,11 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     SkillSet = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
                     Capacity = table.Column<int>(type: "int", nullable: false),
                     CurrentWorkload = table.Column<decimal>(type: "decimal(5,2)", nullable: false, defaultValue: 0.0m),
+                    WindowsIdentity = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    ActiveDirectorySid = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    IsWindowsAuthenticated = table.Column<bool>(type: "bit", nullable: false),
+                    LastAdSync = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AdGroups = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -254,6 +446,83 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         principalTable: "Departments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WorkflowTransitions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FromStageId = table.Column<int>(type: "int", nullable: false),
+                    ToStageId = table.Column<int>(type: "int", nullable: false),
+                    BusinessVerticalId = table.Column<int>(type: "int", nullable: true),
+                    TransitionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    RequiredRole = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    ConditionScript = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NotificationRequired = table.Column<bool>(type: "bit", nullable: false),
+                    NotificationTemplate = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EventSourceId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CorrelationId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    AutoTransitionDelayMinutes = table.Column<int>(type: "int", nullable: true),
+                    ValidationRules = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowTransitions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowTransitions_BusinessVerticals_BusinessVerticalId",
+                        column: x => x.BusinessVerticalId,
+                        principalTable: "BusinessVerticals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkflowTransitions_WorkflowStages_FromStageId",
+                        column: x => x.FromStageId,
+                        principalTable: "WorkflowStages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkflowTransitions_WorkflowStages_ToStageId",
+                        column: x => x.ToStageId,
+                        principalTable: "WorkflowStages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ComplianceViolations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Framework = table.Column<int>(type: "int", nullable: false),
+                    Requirement = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    DetectedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Resource = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    UserId = table.Column<int>(type: "int", maxLength: 50, nullable: false),
+                    IsResolved = table.Column<bool>(type: "bit", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ResolvedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ResolutionNotes = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Evidence = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ComplianceViolations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ComplianceViolations_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -301,6 +570,37 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SecurityEvents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    EventType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    UserId = table.Column<int>(type: "int", maxLength: 50, nullable: false),
+                    IPAddress = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
+                    UserAgent = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    SessionId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Resource = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Details = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Medium"),
+                    IsSuspicious = table.Column<bool>(type: "bit", nullable: false),
+                    CorrelationId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Metadata = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SecurityEvents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SecurityEvents_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -380,7 +680,8 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                     SessionId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     IPAddress = table.Column<string>(type: "nvarchar(45)", maxLength: 45, nullable: false),
                     UserAgent = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    SecurityContext = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}")
+                    SecurityContext = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    Metadata = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -473,31 +774,31 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "BusinessVerticals",
-                columns: new[] { "Id", "Configuration", "ConfigurationHistory", "CreatedBy", "CreatedDate", "Description", "IsActive", "ModifiedBy", "ModifiedDate", "Name", "Version" },
-                values: new object[] { 1, "{}", "[]", "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5155), "Medicaid business vertical", true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5157), "Medicaid", 1 });
+                columns: new[] { "Id", "Configuration", "ConfigurationHistory", "CreatedBy", "CreatedDate", "Description", "IsActive", "ModifiedBy", "ModifiedDate", "Name", "StrategicImportance", "Version" },
+                values: new object[] { 1, "{}", "[]", "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3344), "Medicaid business vertical", true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3345), "Medicaid", 1.0m, 1 });
 
             migrationBuilder.InsertData(
                 table: "Departments",
                 columns: new[] { "Id", "BusinessVerticalId", "CreatedBy", "CreatedDate", "DepartmentCode", "Description", "DisplayOrder", "IsActive", "ModifiedBy", "ModifiedDate", "Name", "ResourceCapacity", "SkillMatrix", "VotingWeight" },
                 values: new object[,]
                 {
-                    { 1, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5374), "REG", "", 1, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5375), "Regulatory", 100, "{}", 1.0m },
-                    { 2, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5399), "COM", "", 2, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5399), "Compliance", 100, "{}", 1.0m },
-                    { 3, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5417), "COM", "", 3, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5417), "Communication", 100, "{}", 1.0m },
-                    { 4, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5434), "COM", "", 4, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5434), "Community Outreach", 100, "{}", 1.0m },
-                    { 5, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5451), "CLI", "", 5, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5451), "Clinical Services", 100, "{}", 1.0m },
-                    { 6, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5471), "CON", "", 6, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5471), "Contract Performance", 100, "{}", 1.0m },
-                    { 7, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5487), "OPE", "", 7, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5487), "Operations", 100, "{}", 1.0m },
-                    { 8, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5503), "PRO", "", 8, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5503), "Provider Network Operations", 100, "{}", 1.0m },
-                    { 9, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5519), "PRO", "", 9, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5520), "Provider Network Management", 100, "{}", 1.0m },
-                    { 10, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5538), "SER", "", 10, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5539), "Service Coordination", 100, "{}", 1.0m },
-                    { 11, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5555), "DAT", "", 11, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5555), "Data and Technical Services", 100, "{}", 1.0m },
-                    { 12, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5588), "ASS", "", 12, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5588), "Associate Relations", 100, "{}", 1.0m },
-                    { 13, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5606), "FIN", "", 13, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5606), "Finance and Actuarial", 100, "{}", 1.0m },
-                    { 14, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5677), "HUM", "", 14, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5677), "Human Resources", 100, "{}", 1.0m },
-                    { 15, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5697), "PRO", "", 15, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5697), "Program Management and Quality", 100, "{}", 1.0m },
-                    { 16, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5714), "QUA", "", 16, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5715), "Quality", 100, "{}", 1.0m },
-                    { 17, 1, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5730), "POP", "", 17, true, "System", new DateTime(2025, 8, 4, 2, 49, 17, 674, DateTimeKind.Utc).AddTicks(5731), "Population Health Medical Services", 100, "{}", 1.0m }
+                    { 1, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3587), "REG", "", 1, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3587), "Regulatory", 100, "{}", 1.0m },
+                    { 2, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3617), "COM", "", 2, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3617), "Compliance", 100, "{}", 1.0m },
+                    { 3, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3634), "COM", "", 3, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3634), "Communication", 100, "{}", 1.0m },
+                    { 4, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3649), "COM", "", 4, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3649), "Community Outreach", 100, "{}", 1.0m },
+                    { 5, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3663), "CLI", "", 5, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3664), "Clinical Services", 100, "{}", 1.0m },
+                    { 6, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3682), "CON", "", 6, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3683), "Contract Performance", 100, "{}", 1.0m },
+                    { 7, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3697), "OPE", "", 7, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3697), "Operations", 100, "{}", 1.0m },
+                    { 8, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3711), "PRO", "", 8, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3711), "Provider Network Operations", 100, "{}", 1.0m },
+                    { 9, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3726), "PRO", "", 9, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3727), "Provider Network Management", 100, "{}", 1.0m },
+                    { 10, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3742), "SER", "", 10, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3743), "Service Coordination", 100, "{}", 1.0m },
+                    { 11, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3757), "DAT", "", 11, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3757), "Data and Technical Services", 100, "{}", 1.0m },
+                    { 12, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3771), "ASS", "", 12, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3771), "Associate Relations", 100, "{}", 1.0m },
+                    { 13, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3786), "FIN", "", 13, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3786), "Finance and Actuarial", 100, "{}", 1.0m },
+                    { 14, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3799), "HUM", "", 14, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3800), "Human Resources", 100, "{}", 1.0m },
+                    { 15, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3815), "PRO", "", 15, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3816), "Program Management and Quality", 100, "{}", 1.0m },
+                    { 16, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3837), "QUA", "", 16, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3837), "Quality", 100, "{}", 1.0m },
+                    { 17, 1, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3853), "POP", "", 17, true, "System", new DateTime(2025, 9, 21, 23, 55, 47, 582, DateTimeKind.Utc).AddTicks(3853), "Population Health Medical Services", 100, "{}", 1.0m }
                 });
 
             migrationBuilder.CreateIndex(
@@ -556,6 +857,26 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 name: "IX_CapabilityDepartmentMappings_DepartmentId",
                 table: "CapabilityDepartmentMappings",
                 column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplianceViolations_DetectedAt",
+                table: "ComplianceViolations",
+                column: "DetectedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplianceViolations_Framework",
+                table: "ComplianceViolations",
+                column: "Framework");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplianceViolations_IsResolved",
+                table: "ComplianceViolations",
+                column: "IsResolved");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplianceViolations_UserId",
+                table: "ComplianceViolations",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ConfigurationChangeRequests_ApprovedById",
@@ -664,6 +985,92 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 columns: new[] { "WorkRequestId", "Weight" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_PriorityConfigurations_BusinessVerticalId_PriorityName",
+                table: "PriorityConfigurations",
+                columns: new[] { "BusinessVerticalId", "PriorityName" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAlerts_CreatedAt",
+                table: "SecurityAlerts",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAlerts_Severity",
+                table: "SecurityAlerts",
+                column: "Severity");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAlerts_Status",
+                table: "SecurityAlerts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAuditLogs_Action",
+                table: "SecurityAuditLogs",
+                column: "Action");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAuditLogs_Timestamp",
+                table: "SecurityAuditLogs",
+                column: "Timestamp");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityAuditLogs_UserId",
+                table: "SecurityAuditLogs",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityEvents_EventType",
+                table: "SecurityEvents",
+                column: "EventType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityEvents_IsSuspicious",
+                table: "SecurityEvents",
+                column: "IsSuspicious");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityEvents_Timestamp",
+                table: "SecurityEvents",
+                column: "Timestamp");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityEvents_UserId",
+                table: "SecurityEvents",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityIncidents_DetectedAt",
+                table: "SecurityIncidents",
+                column: "DetectedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityIncidents_Severity",
+                table: "SecurityIncidents",
+                column: "Severity");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityIncidents_Status",
+                table: "SecurityIncidents",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityThreats_DetectedAt",
+                table: "SecurityThreats",
+                column: "DetectedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityThreats_Severity",
+                table: "SecurityThreats",
+                column: "Severity");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SecurityThreats_Status",
+                table: "SecurityThreats",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SystemConfigurations_BusinessVerticalId",
                 table: "SystemConfigurations",
                 column: "BusinessVerticalId");
@@ -700,6 +1107,28 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 name: "IX_WorkCategoryConfigurations_BusinessVerticalId",
                 table: "WorkCategoryConfigurations",
                 column: "BusinessVerticalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkflowStages_VerticalOrder",
+                table: "WorkflowStages",
+                columns: new[] { "BusinessVerticalId", "Order" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkflowTransitions_BusinessVerticalId",
+                table: "WorkflowTransitions",
+                column: "BusinessVerticalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkflowTransitions_FromStageId_ToStageId_BusinessVerticalId",
+                table: "WorkflowTransitions",
+                columns: new[] { "FromStageId", "ToStageId", "BusinessVerticalId" },
+                unique: true,
+                filter: "[BusinessVerticalId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkflowTransitions_ToStageId",
+                table: "WorkflowTransitions",
+                column: "ToStageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkRequests_BusinessVerticalId",
@@ -777,6 +1206,9 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 name: "CapabilityDepartmentMappings");
 
             migrationBuilder.DropTable(
+                name: "ComplianceViolations");
+
+            migrationBuilder.DropTable(
                 name: "ConfigurationChangeRequests");
 
             migrationBuilder.DropTable(
@@ -786,13 +1218,37 @@ namespace WorkIntakeSystem.Infrastructure.Migrations
                 name: "Priorities");
 
             migrationBuilder.DropTable(
+                name: "PriorityConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "SecurityAlerts");
+
+            migrationBuilder.DropTable(
+                name: "SecurityAuditLogs");
+
+            migrationBuilder.DropTable(
+                name: "SecurityEvents");
+
+            migrationBuilder.DropTable(
+                name: "SecurityIncidents");
+
+            migrationBuilder.DropTable(
+                name: "SecurityThreats");
+
+            migrationBuilder.DropTable(
                 name: "WorkCategoryConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "WorkflowTransitions");
 
             migrationBuilder.DropTable(
                 name: "SystemConfigurations");
 
             migrationBuilder.DropTable(
                 name: "WorkRequests");
+
+            migrationBuilder.DropTable(
+                name: "WorkflowStages");
 
             migrationBuilder.DropTable(
                 name: "BusinessCapabilities");

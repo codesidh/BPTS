@@ -41,7 +41,14 @@ import {
   ProjectDashboard,
   PrioritySummary,
   CompletionSummary,
-  RiskSummary
+  RiskSummary,
+  DashboardAnalytics,
+  DepartmentAnalytics,
+  WorkflowAnalytics,
+  PriorityAnalytics,
+  ResourceUtilization,
+  SLACompliance,
+  TrendData
 } from '../types';
 
 interface LoginRequest {
@@ -116,14 +123,53 @@ class ApiService {
 
   // Authentication methods
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/login', credentials);
-    const authData = response.data;
-    this.setAuthToken(authData.token);
-    return authData;
+    try {
+      console.log('API Service: Making login request...', credentials);
+      const response = await this.api.post<AuthResponse>('/auth/login', credentials, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      console.log('API Service: Login response received:', response.status, response.data);
+      
+      // Validate response data
+      if (!response.data) {
+        throw new Error('No data in response');
+      }
+      
+      const authData = response.data;
+      console.log('API Service: Auth data validated:', authData);
+      
+      // Check if token exists
+      if (!authData.token) {
+        throw new Error('No token in response');
+      }
+      
+      console.log('API Service: Setting auth token...');
+      this.setAuthToken(authData.token);
+      console.log('API Service: Auth token set, returning data');
+      return authData;
+    } catch (error) {
+      console.error('API Service: Login error:', error);
+      console.error('API Service: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      throw error;
+    }
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/register', userData);
+    const response = await this.api.post<AuthResponse>('/auth/register', userData, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     const authData = response.data;
     this.setAuthToken(authData.token);
     return authData;
@@ -155,10 +201,84 @@ class ApiService {
     return response.data;
   }
 
+  // Dashboard Analytics Methods
+  async getDashboardAnalytics(businessVerticalId?: number, fromDate?: Date, toDate?: Date): Promise<DashboardAnalytics> {
+    const params = new URLSearchParams();
+    if (businessVerticalId) params.append('businessVerticalId', businessVerticalId.toString());
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<DashboardAnalytics>(`/analytics/dashboard?${params.toString()}`);
+    return response.data;
+  }
+
+  async getDepartmentAnalytics(departmentId: number, fromDate?: Date, toDate?: Date): Promise<DepartmentAnalytics> {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<DepartmentAnalytics>(`/analytics/department/${departmentId}?${params.toString()}`);
+    return response.data;
+  }
+
+  async getWorkflowAnalytics(fromDate?: Date, toDate?: Date): Promise<WorkflowAnalytics> {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<WorkflowAnalytics>(`/analytics/workflow?${params.toString()}`);
+    return response.data;
+  }
+
+  async getPriorityAnalytics(fromDate?: Date, toDate?: Date): Promise<PriorityAnalytics> {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<PriorityAnalytics>(`/analytics/priority?${params.toString()}`);
+    return response.data;
+  }
+
+  async getResourceUtilization(fromDate?: Date, toDate?: Date): Promise<ResourceUtilization> {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<ResourceUtilization>(`/analytics/resource-utilization?${params.toString()}`);
+    return response.data;
+  }
+
+  async getSLACompliance(fromDate?: Date, toDate?: Date): Promise<SLACompliance> {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('fromDate', fromDate.toISOString());
+    if (toDate) params.append('toDate', toDate.toISOString());
+    
+    const response = await this.api.get<SLACompliance>(`/analytics/sla-compliance?${params.toString()}`);
+    return response.data;
+  }
+
+  async getTrendData(metric: string, fromDate: Date, toDate: Date, groupBy?: string): Promise<TrendData[]> {
+    const params = new URLSearchParams();
+    params.append('metric', metric);
+    params.append('fromDate', fromDate.toISOString());
+    params.append('toDate', toDate.toISOString());
+    if (groupBy) params.append('groupBy', groupBy);
+    
+    const response = await this.api.get<TrendData[]>(`/analytics/trends?${params.toString()}`);
+    return response.data;
+  }
+
   setAuthToken(token: string) {
-    this.token = token;
-    localStorage.setItem('authToken', token);
-    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    try {
+      console.log('API Service: Setting auth token:', token ? 'Token exists' : 'No token');
+      this.token = token;
+      localStorage.setItem('authToken', token);
+      this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('API Service: Auth token set successfully');
+    } catch (error) {
+      console.error('API Service: Error setting auth token:', error);
+      throw error;
+    }
   }
 
   logout() {
